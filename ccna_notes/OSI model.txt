@@ -1,0 +1,48 @@
+---------------
+OSI MODEL
+---------------
+-is a conceptual framework that standardizes the functions of a communication system into seven layers
+
+1.Physical Layer (Layer 1) -_> Deals with the physical connection between devices e.g. cables, switches, and network interface cards (NICs)
+
+2.Data Link Layer (Layer 2) --> Responsible for node-to-node data transfer and error detection/correction.
+-Divided into two sublayers:
+i. MAC (Media Access Control): Controls how devices access the medium.
+ii. LLC (Logical Link Control): Manages frame synchronization and error checking.
+e.g. Ethernet, Wi-Fi (802.11), MAC addresses.
+
+3.Network Layer (Layer 3) --> Manages data routing, addressing, and packet forwarding. Determines the best path for data to reach its destination
+e.g. IP (Internet Protocol), routers, IPv4, IPv6.
+
+4.Transport Layer (Layer 4) -->Ensures reliable data transfer and manages end-to-end communication. Handles error recovery, data flow control, and segmentation.
+e.g. TCP (Transmission Control Protocol), UDP (User Datagram Protocol).
+
+5.Session Layer (Layer 5) --> Manages sessions between applications. Establishes, maintains, and terminates connections.
+e.g.: Remote procedure calls (RPCs), PPTP.
+
+6.Presentation Layer (Layer 6) -->Translates data between the application layer and the network. Handles data encryption, compression, and format conversion.
+Examples: SSL/TLS, JPEG, ASCII, encryption standards.
+
+
+7.Application Layer (Layer 7) --> Closest to the end user. Provides network services to applications (e.g., web browsers, email clients).
+Examples: HTTP, FTP, SMTP, DNS, web browsers
+
+
+Summary:
+Layer 1 (Physical): Bits.
+Layer 2 (Data Link): Frames.
+Layer 3 (Network): Packets.
+Layer 4 (Transport): Segments.
+Layer 5 (Session): Sessions.
+Layer 6 (Presentation): Data translation.
+Layer 7 (Application): User interaction.
+
+-Data at first 4 layers(l1 -> l4) are known as PDU
+-last 3 (l3 -> l7) thers no encapsulation or decapsulations
+
+
+
+
+
+
+

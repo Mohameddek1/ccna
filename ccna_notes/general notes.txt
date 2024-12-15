@@ -1,0 +1,1388 @@
+----------------------------------------------
+Cisco IOS (Internetwork Operating System)
+----------------------------------------------
+
+-Cisco IOS (Internetwork Operating System) --> Cisco IOS is the proprietary operating system used on most Cisco networking devices, including routers and switches. It provides a command-line interface (CLI) for network configuration, management, and troubleshooting
+
+Key Features of Cisco IOS:
+
+i. Modular Architecture: Supports modular configuration and services.
+ii. Scalability and Flexibility: Runs on devices ranging from small routers to enterprise-class switches
+iii. Command-Line Interface (CLI): Provides access to configuration commands and monitoring.
+iv. Support for Protocols: Includes support for various routing protocols (OSPF, BGP), VLANs, and security protocols (IPSec, SSH).
+v. High Availability: Features like HSRP (Hot Standby Router Protocol) and VRRP (Virtual Router Redundancy Protocol).
+
+
+Flavors (Variants) of Cisco IOS:
+
+1.Cisco IOS XE:
+-Purpose: Next-generation Cisco IOS, optimized for modern hardware platforms.
+-Architecture: Modular and Linux-based.
+-Use Cases: Enterprise networks, SD-WAN, and high-performance routers.
+-Devices: Cisco ASR (Aggregation Services Routers), Catalyst switches.
+
+Key Features:
+
+Enhanced programmability with APIs.
+Support for virtualization and container-based services.
+High availability with in-service software upgrades (ISSU)
+
+
+2. Cisco IOS XR:
+-Purpose: Designed for carrier-grade and service provider networks.
+-Architecture: Modular, microkernel-based.
+-Use Cases: High-end routers in core and edge networks.
+-Devices: Cisco NCS (Network Convergence System), ASR 9000 series.
+
+Key Features:
+
+Support for high scalability and reliability.
+Stateful failover and in-service upgrades.
+Segment routing and MPLS support.
+
+
+3. Cisco IOS Classic:
+-Purpose: The original Cisco IOS used in traditional routers and switches.
+-Architecture: Monolithic.
+-Use Cases: Small to medium-sized networks.
+-Devices: Cisco ISR (Integrated Services Routers), older Catalyst switches.
+
+Key Features:
+
+Basic routing and switching functionality.
+CLI-based configuration.
+
+4. Cisco NX-OS:
+-Purpose: Designed for data center environments.
+-Architecture: Linux-based.
+-Use Cases: High-performance data centers, SANs (Storage Area Networks).
+-Devices: Cisco Nexus switches.
+
+Key Features:
+
+Advanced data center features like virtual port channels (vPC).
+Support for automation and programmability (Python, APIs).
+Enhanced scalability and performance.
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+--------------------------------------
+ways to access a device over network
+--------------------------------------
+1. Remote Command-Line Access:
+
+i. SSH (secure shell) --> Securely access the CLI of a device for management and configuration.
+-Ports Used: TCP 22.
+Example:
+ssh admin@192.168.1.1
+
+ii. Telnet (Insecure, Deprecated) --> Non-secure CLI access for legacy devices.
+-Ports Used: TCP 23.
+-e.g. <telnet device-Ip>
+
+2. Web-Based (GUI) Access:
+a) HTTP/HTTPS (Web Interface) -->  Access device management interfaces using a browser
+-Ports Used: HTTP (80), HTTPS (443)
+
+3. Network File Access:
+a) FTP/SFTP (File Transfer Protocol) --> Transfer configuration files, logs, or firmware to/from a device.
+-Ports Used: FTP (21), SFTP (22).
+
+4. Network Management and Monitoring:
+a) SNMP (Simple Network Management Protocol) -->Monitor and manage devices remotely by polling for data.
+-Ports Used: UDP 161 (queries), UDP 162 (traps).
+
+b) Remote Desktop Protocol (RDP) --> Access the graphical desktop of a remote device (typically a Windows server or PC).
+-Ports Used: TCP 3389.
+
+5. Virtual Private Network (VPN) --> Securely connect to a private network over the internet
+-Protocols Used: PPTP, L2TP/IPSec, OpenVPN
+
+6. Serial Console Access (Indirect Network Access) --> Access devices when remote network access is not available.
+-Ports Used: Local COM/Serial ports.
+
+7. APIs and Automation:
+a) REST APIs --> Programmatically interact with devices for automation.
+-Ports Used: HTTPS (443)
+-Example:
+curl -X GET "https://device-ip/api/v1/status" -H "Authorization: Bearer token"
+
+8. Cloud-Based Access:
+a) Cloud Management Platforms (e.g., Cisco Meraki, AWS, Azure) --> Manage and monitor devices from a cloud-based dashboard.
+
+
+--------------------------------------------------------------------------------------------------
+1. Inbound Traffic --> Inbound traffic refers to data packets entering a network or device from an external source.
+
+2. Outbound Traffic --> Outbound traffic refers to data packets leaving a network or device, heading to an external destination.
+
+
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+? -> to show the commands available
+enable -> to turn on priviledge
+hostname dek-router
+enable password moha123
+show running-config | include enable --> to show password
+enable secret moha123
+show version
+
+show running | i hostname
+show running-config | include hostname
+sh disk0
+copy running-config disk0
+more disk0:dek-config
+
+#to save in tftp
+copy running-config tftp:
+write erase
+copy tftp startup-config
+
+show ip interface brief
+configure terminal
+interface GigabitEthernet0/0
+ip address 10.1.1.1 255.255.255.0
+no shutdown
+exit
+end
+
+do show ip interface brief
+no ip domain-lookup
+
+sh history
+
+show running-config
+show startup-config
+write memory
+copy running-config startup-config
+show run | include interface
+
+#vlan
+conf term
+interface vlan1
+ip add 192.168.1.1 255.255.255.0
+no shutdown
+end
+
+#default gate way
+conf ter
+no ip routing 
+ip default-gateway 192.168.1.100
+show ip route
+
+#enable ports
+conf ter
+int range fa0/7, fa0/6, fa0/5, fa0/2
+end
+
+#telnet
+line vty 0 7
+password dek123
+login
+end
+
+(config)#line vty 0 4
+(config-line)#shutdown
+
+telnet 192.168.1.3
+show users
+clear line vty
+
+
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+------------------------------
+Cables used in Networking
+------------------------------
+1. Ethernet cables(straight cable) --> A type of twisted-pair cable used to connect different types of devices (e.g., PC to switch, switch to router).
+-Pin Configuration:
+Pins on both ends are identical (T568A or T568B standard).
+-Example Cable: Cat5e, Cat6, Cat6a, Cat7.
+
+2. Ethernet Cables(Crossover cable) --> A twisted-pair cable used to connect similar devices (e.g., PC to PC, switch to switch).
+-Pin Configuration:
+One end is T568A, and the other is T568B.
+
+NOTE: RJ45 connector is used in both straight and cross Over cable
+
+3. Fiber optic cables --> Cables that use light to transmit data, offering high-speed communication over long distances.
+-Types:
+i.  Single-mode Fiber (SMF): Used for long distances (up to 40 km or more).
+ii. Multi-mode Fiber (MMF): Used for shorter distances (up to 2 km).
+
+4. Console Cable(Rollover Cable) --> A special cable used to connect a computer to the console port of a networking device (e.g., router or switch) for configuration purposes.
+-Connector Types:
+RJ45 on one end and DB9 (serial) on the other or USB-to-RJ45 adapters.
+
+5. Coaxial Cables --> A cable with a solid central conductor, surrounded by an insulating layer and a braided shield.
+-Types:
+RG-6 (used for TV and broadband).
+RG-59 (used for CCTV).
+
+6. Serial cables --> Cables used to connect two devices using serial communication (data transmitted one bit at a time) over Wide Area Network(WANs) for reliable, long-distance communication
+-Connector Types:
+DB9, DB25, or V.35 connectors.
+-DTE is the device which sends and receive data where DCE is the device that which facilitate communication between DTE devices
+
+
+
+7. Ethernet Cables (Twisted-Pair):
+
+Twisted-pair Ethernet cables are the most commonly used cables for network communication, designed to reduce interference and crosstalk by twisting pairs of wires together.
+
+-Structure of Twisted-Pair Cables:
+i.   Conductor: Copper wires that carry the data.
+ii.  Twisting: Pairs of wires are twisted to minimize electromagnetic interference (EMI).
+iii. Sheathing: An outer jacket protects the wires from physical damage and environmental factors.
+
+-Types of Twisted-Pair Ethernet Cables:
+a). Unshielded Twisted Pair (UTP) --> Cables with no additional shielding around the twisted pairs.
+-Advantages:
+i.   Cost-effective and flexible.
+ii.  Lightweight and easy to install.
+-Common Use:
+ LAN networks (offices, homes).
+-Categories:
+Cat5, Cat5e, Cat6, Cat6a, Cat7, Cat8.
+
+b). Shielded Twisted Pair (STP) --> Each pair of wires is wrapped in a shield, with an overall shield around all pairs.
+-Advantages:
+i.  Better protection against EMI and crosstalk.
+ii. Suitable for industrial environments.
+-Common Use:
+Environments with high EMI (factories, data centers).
+
+##############################
+Ethernet Cable Categories:
+##############################
+a).Cat5:
+
+Speed: Up to 100 Mbps.
+Use: Basic tasks, voice communication (now obsolete).
+
+b).Cat5e:
+
+Speed: Up to 1 Gbps.
+Use: Home and office networks (still widely used).
+
+c).Cat6:
+
+Speed: 1 Gbps (up to 10 Gbps for short distances).
+Use: High-speed LANs, gaming, streaming.
+
+d).Cat6a:
+
+Speed: 10 Gbps over 100 meters.
+Use: Data centers, performance-critical networks.
+
+e).Cat7:
+
+Speed: 10 Gbps.
+Use: Future-proof installations, high shielding.
+
+f).Cat8:
+
+Speed: 25-40 Gbps (short distances).
+Use: Data centers, high-performance servers.
+
+
+
+
+#####################################
+Connectors for Fiber Optic Cables:
+#####################################
+1. LC (Lucent Connector) --> A small, compact, and commonly used in modern networking environment. its easy to use and fit tight spaces, making it popular for High-density connections.
+-Type: Duplex (two fibers) or single.
+-Use Cases: High-density data centers, telecom.
+-Advantage: Compact size, ideal for space-constrained environments.
+
+2. SC (Subscriber Connector) --> A square-shaped connector with a push-pull design. Larger than LC connector
+Type: Duplex or single.
+Use Cases: Ethernet switches, patch panels.
+Advantage: Simple design, easy to use.
+
+3. ST (Straight Tip) --> it uses a twist-on mechanism, often found in older installation or specific environment like industrial settings
+Type: Single-mode and multi-mode.
+Use Cases: LANs, military networks.
+Advantage: Durable, reliable in industrial settings.
+
+4. MTP/MPO (Multi-Fiber Push On) --> High-density connectors that can handle multiple fibers (up to 12 or 24).
+Use Cases: Data centers with high-speed, high-bandwidth needs.
+Advantage: Supports parallel data transmission, ideal for 40G/100G networks.
+
+5. FC (Ferrule Connector) --> A threaded connector that screws into place for a secure fit.
+Use Cases: Telecom, high-vibration environments.
+Advantage: Excellent for long-distance and single-mode fiber.
+
+6. E2000 Connector --> A push-pull connector with a spring-loaded shutter for dust protection.
+Use Cases: High-performance telecom networks.
+Advantage: Provides extra protection for fiber ends.
+
+
+#####################################
+Port/Interface Types in Networking:
+######################################
+
+1. Ethernet Ports: Connects devices using Ethernet cables (e.g., computers, switches, routers). FE, GE
+2. Fiber Optic Ports: For high-speed, long-distance connections using fiber cables (e.g., SFP, SFP+).
+3. Serial Ports: Used to configure devices through a console connection.
+4. Console Ports: Directly manages and configures network devices.
+5. USB Ports: Connects storage or for device management.
+6. PoE Ports: Provides power and data through Ethernet (for IP cameras, phones).
+7. Wireless Interfaces: Connects devices using Wi-Fi.
+8. WAN Ports: Connects to external networks like the internet.
+9. Loopback Interfaces: Virtual port used for testing and management.
+
+#########################
+Types of Ethernet Ports:
+#########################
+
+1.Fast Ethernet (FE):
+
+Speed: Up to 100 Mbps.
+Use: Older networks and basic tasks.
+
+2.Gigabit Ethernet (GE):
+
+Speed: Up to 1 Gbps.
+Use: Common in modern networks for faster data transfer.
+
+3.10-Gigabit Ethernet (10GE):
+
+Speed: Up to 10 Gbps.
+Use: High-performance networks, data centers.
+
+4.PoE (Power over Ethernet):
+
+Provides both power and data through a single Ethernet cable.
+Use: IP cameras, phones, access points.
+
+5.Ethernet over Fiber (Fiber Ports):
+
+Uses fiber optic cables for longer distances and higher speeds.
+Use: Data centers, telecom networks.
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+------------------------------
+Router in Networking
+------------------------------
+-A router is a device that connects different networks and directs data between them
+
+-router uses logical addresses called IPV4/IPV6
+
+Key actions:
+
+i. Routing Traffic: Directs data packets between devices and networks using IP addresses
+ii. NAT (Network Address Translation): Allows multiple devices to share a single public IP address.
+iii. Network Segmentation: Connects multiple networks (e.g., home network to the internet).
+iv. Security: Provides firewall features and traffic filtering to protect networks. 
+
+v) Guide and forward packets
+
+static --> Manually configured routes that specify a fixed path for data to travel.
+
+dynamic -->  Routes are automatically learned and updated by the router using routing protocols
+
+
+IPv5 was an experimental protocol focused on streaming, while IPv6 is the next-generation IP addressing system designed to handle the internet’s growth with better security and scalability.
+
+Key Features of IPv6:
+1.Larger Address Space --> IPv6 uses 128-bit addresses, providing 340 trillion trillion trillion possible IP addresses.
+
+2.Simplified Header --> The IPv6 header is more efficient, improving performance.
+
+3.Built-in Security --> IPv6 supports IPSec for encryption and secure communication by default.
+
+4.Auto-Configuration --> Devices can automatically generate their own IPv6 addresses (stateless autoconfiguration).
+
+5.No NAT Needed -->IPv6 eliminates the need for Network Address Translation (NAT) because of its vast address space.
+
+6.Improved Multicast Support --> IPv6 enhances the delivery of data to multiple destinations simultaneously.
+
+***IPv6 Address Example:
+2001:0db8:85a3:0000:0000:8a2e:0370:7334
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+-------------------------------
+Switch in Networking
+-------------------------------
+-A network switch is a device that connects multiple devices (computers, printers, servers) within a local network (LAN) and allows them to communicate efficiently.
+
+-switch uses MAC addresses
+-flooding
+
+-vlan, SVI(method creating virtual gateway)
+
+Key Functions of a Switch:
+
+1.Forwarding Data --> Uses MAC addresses to direct data packets to the correct device.
+
+2.Network Segmentation --> Helps reduce congestion by creating smaller, isolated networks within a larger one.
+
+3.Full-Duplex Communication --> Allows devices to send and receive data simultaneously, increasing efficiency.
+
+4.VLAN Support --> Switches can create Virtual Local Area Networks (VLANs) to separate traffic within a network for security and efficiency.
+
+Types of Switches:
+
+1.Unmanaged Switch --> Simple, plug-and-play devices with no configuration options.
+Used in small networks.
+M
+2.anaged Switch -->Allows configuration, monitoring, and control of network traffic.
+Used in enterprise environments.
+
+3.Layer 2 Switch -->Operates at the Data Link layer (Layer 2) of the OSI model, forwarding based on MAC addresses.
+
+4.Layer 3 Switch --> Operates at both Layer 2 and Layer 3 (Network layer), capable of routing based on IP addresses.
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-------------------------------
+FIREWALL & IPS
+-------------------------------
+
+-A firewall is a security device that monitors and controls incoming and outgoing network traffic based on predefined security rule
+
+Types of Firewalls:
+-Packet-Filtering Firewall: Filters traffic based on IP addresses, ports, and protocols.
+-Stateful Inspection Firewall: Tracks the state of active connections and decides whether to allow or block traffic.
+-Next-Generation Firewall (NGFW): Includes advanced features like deep packet inspection, application control, and threat prevention
+
+Intrusion Prevention System (IPS)
+
+-An IPS actively monitors network traffic for malicious activity and takes actions (such as blocking or quarantining traffic) to prevent intrusions
+
+Types of IPS:
+-Network-based IPS (NIPS): Monitors entire network traffic.
+-Host-based IPS (HIPS): Monitors individual devices for suspicious activity.
+
+Summary:
+
+-A firewall controls what traffic is allowed into and out of a network.
+-An IPS detects and blocks attacks before they cause harm.
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+----------------------------
+basic switch labs
+-----------------------------
+
+1. Setting Hostname:
+shell
+Copy code
+SW1(config)#hostname dek
+
+2. Configuring Enable Password:
+Enable Password:
+
+dek(config)#enable password moha123
+Enable Secret (More Secure):
+
+dek(config)#enable secret moha456
+
+3. Setting IP Address on VLAN Interface:
+Configure VLAN 1 with an IP address:
+
+dek(config)#interface vlan 1
+dek(config-if)#ip address 192.168.1.1 255.255.255.0
+dek(config-if)#no shutdown
+dek(config-if)#end
+
+4. Configuring Default Gateway:
+Set a default gateway:
+
+dek(config)#no ip routing
+dek(config)#ip default-gateway 192.168.1.100
+dek#show ip route
+
+5. Configuring the Switch as a Telnet Server:
+Enable Telnet access on VTY lines:
+
+dek(config)#line vty 0 7
+dek(config-line)#password dek123
+dek(config-line)#login
+dek(config-line)#end
+
+6. Ping Test:
+Test connectivity with another device:
+
+dek#ping 192.168.1.2
+
+7. Telnet Test:
+Telnet to another device:
+
+dek#telnet 192.168.1.3
+
+8. Verifying Logged-in Users:
+Display all active sessions:
+
+dek#show users
+
+9. Clearing VTY Sessions:
+Clear a specific VTY line:
+
+dek#clear line vty 0
+
+10. Shutting Down VTY Lines:
+Disable VTY access:
+
+dek(config)#line vty 0 4
+dek(config-line)#shutdown
+
+11. Creation of VLANS on switch
+show vlans
+conf t
+vlan 56
+name dek-test-vlan
+show vlan id 56
+
+#port for the vlan
+conf t
+show ip int br
+int fa0/21
+switchport mode access
+switchport access vlan 56
+show running-config interface fastEthernet 0/21
+show vlan brief
+
+
+--------------------------------
+vlan & Trunk port configuration
+--------------------------------
+1. configure VLANS on switches and name these
+Switch>enable
+Switch#configure terminal
+Switch(config)#vlan 10
+Switch(config-vlan)#name Sales
+Switch(config)#vlan 20
+Switch(config-vlan)#name Marketing
+Switch(config)#exit
+vlan 77,88,99
+
+2. configure access Vlans on ports having routers
+Switch(config)#interface fastEthernet 0/1
+Switch(config-if)#switchport mode access
+Switch(config-if)#switchport access vlan 10
+Switch(config-if)#no shutdown
+Switch(config-if)#exit
+
+3. configure Trunks with ISL Encapsulation
+Switch(config)#interface fastEthernet 0/24
+Switch(config-if)#switchport trunk encapsulation isl
+Switch(config-if)#switchport mode trunk
+Switch(config-if)#no shutdown
+Switch(config-if)#exit
+
+
+4. Configure Trunks with 802.1Q Encapsulation
+Switch(config)#interface fastEthernet 0/23
+Switch(config-if)#switchport trunk encapsulation dot1q
+Switch(config-if)#switchport mode trunk
+Switch(config-if)#no shutdown
+Switch(config-if)#exit
+
+5. Verify the Trunk configuration and Allowed Vlans
+Switch# 
+Switch#show vlan brief
+
+6. ping test
+
+########
+TRUNKING
+########
+sh vlan id 88
+int vlan 88
+ip add 20.1.1.1 255.255.255.0
+no sh
+end
+show ip int br
+
+sh int fa0/10 switchport --> tells u the detail of the port
+
+-router on a stick
+
+
+- devices communicate across VLANs using encapsulation
+-This process adds a VLAN tag to frames when they traverse a trunk link and removes the tag when frames reach access ports.
+
+-Encapsualtion --> ISL and 802.1Q
+
+-ISL (Inter-Switch Link):
+
+Proprietary to Cisco.
+Encapsulates the entire Ethernet frame by adding a header and a trailer.
+Not widely used today due to limited support.
+
+-802.1Q (Dot1Q):
+
+Industry standard.
+Inserts a 4-byte tag into the Ethernet frame header.
+Supports VLANs up to 4094.
+
+scenario:
+1. PC1 → Switch → PC2 (Same VLAN):
+Access ports (connected to PCs) do not tag the frames.
+Frames travel untagged between the PC and the switch.
+No encapsulation happens, as both PCs are in the same VLAN.
+2. PC1 → Switch → Switch → PC2 (Different VLANs via Trunk Link):
+PC1 sends a frame to the switch.
+The switch adds a VLAN tag (encapsulation) using 802.1Q or ISL when sending the frame over the trunk link to another switch.
+The second switch reads the VLAN tag and forwards the frame accordingly.
+When the frame reaches the access port connected to PC2, the switch removes the tag (decapsulation), delivering the frame as a standard Ethernet frame.
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-create 4 vlans on all of the switches
+
+Switch1>enable
+Switch1#configure terminal
+Switch1(config)#vlan 10
+Switch1(config-vlan)#name Sales
+Switch1(config)#vlan 20
+Switch1(config-vlan)#name Marketing
+Switch1(config)#vlan 30
+Switch1(config-vlan)#name IT
+Switch1(config)#vlan 40
+Switch1(config-vlan)#name HR
+Switch1(config)#exit
+show vlan brief
+show interface trunk
+
+
+-show how these can be allowed in the trunks
+
+Switch1(config)#interface fastEthernet 0/1
+Switch1(config-if)#switchport mode trunk
+Switch1(config-if)#switchport trunk allowed vlan 10,20,30,40
+Switch1(config-if)#exit
+
+Switch2(config)#interface fastEthernet 0/1
+Switch2(config-if)#switchport mode trunk
+Switch2(config-if)#switchport trunk allowed vlan 10,20,30,40    or none``
+Switch2(config-if)#exit
+
+
+-show the usage of "add" and "remove" keywords
+
+Switch1(config)#interface fastEthernet 0/1
+Switch1(config-if)#switchport trunk allowed vlan add 50
+Switch1(config-if)#exit
+
+Switch1(config)#interface fastEthernet 0/1
+Switch1(config-if)#switchport trunk allowed vlan remove 20
+Switch1(config-if)#exit
+
+
+-test connectivity between hosts when vlan is allowed in the trunk list
+-test connectivity when vlan is blocked in the trunk
+-show all the possible verification commands
+
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-------------------------
+Dynamic trunking
+-------------------------
+1.explain what is DTP and its all mode -->
+(Dynamic Trunking Protocol) is a Cisco-proprietary protocol that automates the negotiation of trunk links between switches.
+
+-Modes in DTP:
+Access Mode: Forces the interface into non-trunking mode.
+Trunk Mode: Forces the interface into trunking mode.
+Dynamic Desirable Mode: Actively attempts to form a trunk link with the other side.
+Dynamic Auto Mode: Passively waits for the other side to request a trunk.
+
+2.Do a lab making both as desirable. check on what enapslation ls negotiate
+-when both interfaces are set to dynamic desirable, DTP actively negotiates a trunk link.
+
+Switch 1:
+Switch1(config)#interface fa0/1
+Switch1(config-if)#switchport mode dynamic desirable
+Switch1(config-if)#no shutdown
+
+Switch 2:
+Switch2(config)#interface fa0/1
+Switch2(config-if)#switchport mode dynamic desirable
+Switch2(config-if)#no shutdown
+
+Verification:
+Switch1#show interfaces trunk
+
+3.do a lab by making both ends as auto
+-When both ends are set to dynamic auto, no trunk is formed since both are passive.
+
+Switch 1:
+Switch1(config)#interface fa0/1
+Switch1(config-if)#switchport mode dynamic auto
+Switch1(config-if)#no shutdown
+
+Switch 2:
+Switch2(config)#interface fa0/1
+Switch2(config-if)#switchport mode dynamic auto
+Switch2(config-if)#no shutdown
+
+Verification:
+Switch1#show interfaces trunk
+
+-No trunk will appear because both sides are waiting for a request.
+
+4.do a lab by making one end as Auto and other as desireable
+-When one side is dynamic auto and the other is dynamic desirable, the trunk is successfully formed.
+
+Switch 1:
+Switch1(config)#interface fa0/1
+Switch1(config-if)#switchport mode dynamic auto
+Switch1(config-if)#no shutdown
+
+Switch 2:
+Switch2(config)#interface fa0/1
+Switch2(config-if)#switchport mode dynamic desirable
+Switch2(config-if)#no shutdown
+
+Verification:
+Switch1#show interfaces trunk
+
+
+5.set manual encapsulation of dot1q at end and make it negotiate at other end
+
+One End Manual Dot1Q:
+Switch 1:
+Switch1(config)#interface fa0/1
+Switch1(config-if)#switchport trunk encapsulation dot1q
+Switch1(config-if)#switchport mode trunk
+Switch1(config-if)#no shutdown
+
+Other End Dynamic:
+Switch 2:
+Switch2(config)#interface fa0/1
+Switch2(config-if)#switchport mode dynamic desirable
+Switch2(config-if)#no shutdown
+
+Verification:
+Switch1#show interfaces trunk
+
+
+Verification
+##show dtp interface fa0/17
+##show int fa0/1 switchport
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++
+------------------------------
+Routing on stick
+------------------------------
+-"Routing on a Stick" is a method of enabling inter-VLAN routing on a network using a single physical connection between a switch and a router
+
+1. Network Setup
+A switch is connected to a router via one physical interface (e.g., fa0/0).
+Multiple VLANs are configured on the switch (e.g., VLAN 10 and VLAN 20).
+Hosts in each VLAN need to communicate with one another via the router.
+
+2. Create VLANs on the Switch
+
+Enter VLAN Configuration Mode:
+
+Switch(config)#vlan 10
+Switch(config-vlan)#name Sales
+Switch(config)#vlan 20
+Switch(config-vlan)#name Marketing
+
+Assign Ports to VLANs:
+
+Switch(config)#interface fa0/2
+Switch(config-if)#switchport mode access
+Switch(config-if)#switchport access vlan 10
+Switch(config)#interface fa0/3
+Switch(config-if)#switchport mode access
+Switch(config-if)#switchport access vlan 20
+
+3. Configure the Trunk on the Switch
+
+Set the Port Connecting to the Router as a Trunk:
+Switch(config)#interface fa0/1
+Switch(config-if)#switchport trunk encapsulation dot1q
+Switch(config-if)#switchport mode trunk
+
+Verify the Trunk Configuration:
+Switch#show interfaces trunk
+
+4. Configure Subinterfaces on the Router
+
+Access the Router Interface:
+
+Router(config)#interface fa0/0
+
+Create Subinterfaces for Each VLAN:
+
+VLAN 10:
+Router(config)#interface fa0/0.10
+Router(config-subif)#encapsulation dot1q 10
+Router(config-subif)#ip address 192.168.10.1 255.255.255.0
+
+VLAN 20:
+
+Router(config)#interface fa0/0.20
+Router(config-subif)#encapsulation dot1q 20
+Router(config-subif)#ip address 192.168.20.1 255.255.255.0
+
+Activate the Physical Interface:
+
+Router(config)#interface fa0/0
+Router(config-if)#no shutdown
+
+5. Configure Hosts
+Assign IP addresses to the PCs in each VLAN:
+
+PC1 (VLAN 10):
+
+IP Address: 192.168.10.2
+Subnet Mask: 255.255.255.0
+Default Gateway: 192.168.10.1
+
+PC2 (VLAN 20):
+
+IP Address: 192.168.20.2
+Subnet Mask: 255.255.255.0
+Default Gateway: 192.168.20.1
+
+6. Test Connectivity
+Ping the router's subinterface IP addresses from the PCs:
+
+From PC1:
+ping 192.168.10.1
+ping 192.168.20.1
+Test communication between hosts in different VLANs:
+
+From PC1 to PC2:
+ping 192.168.20.2
+
+
+7. Verification Commands
+On the Switch:
+
+Check VLANs:
+Switch#show vlan brief
+
+Verify Trunk Ports:
+Switch#show interfaces trunk
+On the Router:
+
+Check Subinterfaces:
+Router#show ip interface brief
+
+View Routing Table:
+Router#show ip route
+
+
+------------------------------------
+VTP
+------------------------------------
+-VLAN Trunking Protocol --> is a Cisco proprietary protocol used to manage VLAN configurations across a network of interconnected switches
+-Ensures that all switches in the domain have the same VLAN configurations.
+-VLANs created or modified on a single switch (server mode) are propagated to all switches in the VTP domain.
+-Keeps VLAN information updated across the network.
+
+VTP Modes
+
+1.Server Mode:
+Default mode for Cisco switches.
+Allows creation, deletion, and modification of VLANs.
+Propagates changes to all other switches in the VTP domain.
+At least one switch in the domain must be in server mode.
+
+2.Client Mode:
+
+Cannot create, delete, or modify VLANs.
+Receives VLAN updates from a server and synchronizes its VLAN database.
+
+3.Transparent Mode:
+
+Switch does not participate in the VTP domain.
+VLAN changes are not propagated or synchronized.
+Local VLAN changes affect only that switch.
+Still forwards VTP advertisements.
+
+4.Off:
+
+VTP is disabled on the switch.
+VLAN changes are entirely local, and no VTP advertisements are forwarded.
+
+
+
+##VTP Configuration Commands##
+
+Switch(config)#vtp domain [domain-name]
+
+Switch(config)#vtp mode server
+
+Switch(config)#vtp password [password]
+
+Switch#vtp version 2
+
+Switch#show vtp status
+
+
+Client side:
+
+show vlan brief
+
+vtp domain [name]
+
+vtp mode CLIENT
+
+vtp password 12345
+
+
+
+***note: vtp mode [server | client | transparent | off]
+
+
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++++
+---------------------------
+stp root bridge election 
+---------------------------
+-STP Root Bridge Election refers to the process by which the Spanning Tree Protocol (STP) selects the Root Bridge, which is the central point in the spanning tree topology of a Layer 2 network. The Root Bridge acts as the reference point for all path calculations.
+
+-Each switch has a unique Bridge ID, which is a combination of:
+Bridge Priority (default is 32768).
+MAC Address of the switch.
+
+-Election Criteria: STP uses the following criteria to select the Root Bridge:
+
+Lowest Priority: The switch with the lowest Bridge Priority wins.
+Lowest MAC Address (as a tiebreaker): If multiple switches have the same priority, the one with the lowest MAC address becomes the Root Bridge.
+
+-If all switches have the same default priority (32768), the switch with the lowest MAC address becomes the Root Bridge.
+
+
+1.View Current Root Bridge:
+
+Switch#show spanning-tree
+
+-Look for "This bridge is the root" in the output
+
+2.Set Root Bridge Priority: To make a switch the Root Bridge, lower its priority:
+
+Switch(config)#spanning-tree vlan [vlan-id] priority [value]
+
+-Use a value lower than the default (e.g., 4096).
+
+4.Force Root Bridge Role: Cisco switches provide a command to configure a switch as the root for specific VLANs:
+
+Switch(config)#spanning-tree vlan [vlan-id] root primary
+
+5.Verification
+
+Check Root Bridge:
+
+Switch#show spanning-tree
+
+Check Port Roles:
+
+Switch#show spanning-tree detail
+
+NOTE:
+
+Switch#show spanning-tree summary
+Switch(config)#spanning-tree mode rapid-pvst
+Switch(config)#spanning-tree vlan [vlan-id] root primary/secondary
+
+Switch#show spanning-tree vlan 5
+Switch(config)#spanning-tree vlan 5 priority 8192
+Switch(config)#spanning-tree vlan 5 root primary/secondary
+
+
+++++++++++++++++++++++++++++++++++++++++++
+-----------------------
+ Root Port (RP)
+-----------------------
+-is the port on a non-root bridge that has the best path to the Root Bridge
+
+-Root Path Cost:
+
+The path cost is the cumulative cost of reaching the Root Bridge from the switch.
+Each link has a cost based on its speed:
+10 Mbps: Cost = 100
+100 Mbps: Cost = 19
+1 Gbps: Cost = 4
+10 Gbps: Cost = 2
+The port with the lowest root path cost becomes the Root Port.
+
+-Bridge ID (BID):
+
+If two ports have the same path cost, the switch selects the port connected to the switch with the lowest Bridge ID (BID).
+The BID consists of:
+Bridge Priority (default is 32768 + VLAN ID)
+MAC Address of the switch
+
+-Port Priority:
+
+If the above tie persists, the port priority is considered. The default port priority is 128.
+
+-Port Number:
+
+If all else fails, the port with the lowest physical port number is chosen.
+
+
+Commands to View and Set STP Path Cost;
+
+Switch#show spanning-tree interface fastEthernet 0/1
+Switch#configure terminal
+Switch(config)#interface fastEthernet 0/1
+Switch(config-if)#spanning-tree cost <value>
+
+Reset the Path Cost to Default
+
+Switch(config)#interface fastEthernet 0/1
+Switch(config-if)#no spanning-tree cost
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++
+------------------------------
+EtherChannel and its modes
+------------------------------
+-EtherChannel is a technology that combines multiple physical links into one logical link to provide redundancy and increased bandwidth.
+
+Modes of EtherChannel:
+
+EtherChannel can be configured in two main protocols:
+
+Port Aggregation Protocol (PAgP): Cisco proprietary.
+Link Aggregation Control Protocol (LACP): IEEE standard (802.3ad).
+
+Advantages of EtherChannel:
+
+Increased Bandwidth: Combines multiple physical links into one logical link.
+Redundancy: Provides fault tolerance; traffic is rerouted if one link fails.
+Load Balancing: Distributes traffic across links in the EtherChannel.
+
+1. Configure Physical Interfaces
+-Set the interface mode to either access or trunk
+
+Switch(config)#interface range fastEthernet 0/1 - 2
+Switch(config-if-range)#switchport mode trunk
+Switch(config-if-range)#channel-group 1 mode on
+
+
+2. Set EtherChannel Mode
+Example for LACP:
+
+Switch(config-if-range)#channel-group 1 mode active
+
+Example for PAgP:
+
+Switch(config-if-range)#channel-group 1 mode desirable
+
+3. Verify EtherChannel
+
+Switch#show etherchannel summary
+Switch#show running-config
+Switch#show interfaces port-channel 1
+
+
+NOTE:
+-on both switches
+
+Switch(config)#interface range fastEthernet 0/1 - 4
+Switch(config-if-range)#channel-group 1 mode active
+Switch(config)#interfaces port-channel 1
+Switch(config-if-range)#switchport mode trunk
+
+
+++++++++++++++++++++++++++++++++++++++++++++++
+------------------------
+port security
+------------------------
+-Port security is a Layer 2 traffic control feature on switches that restricts the input to an interface by limiting the MAC addresses that can access it. It helps secure the network by preventing unauthorized devices from connecting to the network
+#################################
+Key Features of Port Security
+#################################
+1.MAC Address Limiting:
+
+Restricts the number of MAC addresses on a specific port.
+Static or dynamic MAC addresses can be assigned.
+
+2.Violation Actions:
+
+Protect: Drops packets with unauthorized MAC addresses, but does not log.
+Restrict: Drops packets and logs a security violation message.
+Shutdown: Disables the port upon a violation (default mode).
+
+3.Secure MAC Addresses:
+
+Static: Manually configured and saved in the running configuration.
+Dynamic: Learned dynamically and removed after the port is shut down or restarted.
+Sticky: Learned dynamically and saved in the running configuration.
+
+###################################
+Port Security Configuration Steps
+###################################
+1. Enable Port Security on an Interface
+
+Switch(config)#interface fastEthernet 0/1
+Switch(config-if)#switchport mode access
+Switch(config-if)#switchport port-security
+
+2. Set the Maximum Number of MAC Addresses
+
+Switch(config-if)#switchport port-security maximum 2
+
+3. Specify Violation Action
+
+Choose one of the violation modes.
+
+Switch(config-if)#switchport port-security violation protect
+Switch(config-if)#switchport port-security violation restrict
+Switch(config-if)#switchport port-security violation shutdown
+
+4. Use Sticky MAC Addresses (Optional)
+
+Switch(config-if)#switchport port-security mac-address sticky
+
+5. Manually Configure a MAC Address (Optional)
+
+Switch(config-if)#switchport port-security mac-address 0011.2233.4455
+
+
+Verification Commands
+
+1.Show Port Security Configuration:
+
+Switch#show port-security
+
+2.Show Secure MAC Addresses:
+
+Switch#show port-security address
+
+3.Check Violations:
+
+Switch#show port-security interface fastEthernet 0/1
+
+4.Clear Port Security Violation (If in shutdown mode):
+
+Switch(config)#interface fastEthernet 0/1
+Switch(config-if)#shutdown
+Switch(config-if)#no shutdown
+
+NOTE:
+Switch#show mac address-table int fa0/1
+mac-address 1234.1212.1221
+errdisable recovery interval 30
+
+++++++++++++++++++++++++++++++++++++++++++++++++
+------------------------------
+Basic I addressing on routers
+------------------------------
+-IP addressing on a router involves assigning IP addresses to the router’s interfaces to enable communication with connected networks
+###########
+commands
+###########
+Router>enable
+Router#configure terminal
+Router(config)#interface serial0/0
+Router(config-if)#ip address 192.168.1.1 255.255.255.0
+Router(config-if)#no shutdown
+Router(config-if)#exit
+
+Router(config)#interface serial0/1
+Router(config-if)#ip address 192.168.2.1 255.255.255.0
+Router(config-if)#no shutdown
+Router(config-if)#exit
+
+Router(config)#exit
+Router#show ip interface brief
+
+
+NOTE:
+show ip route
+show ip int br | include up
+show ip int br | exclude up
+
+
+____________________________________
+Securing Router Access
+____________________________________
+
+1. Secure Console Access
+Router>enable
+Router#configure terminal
+Router(config)#line console 0
+Router(config-line)#password secureConsole123
+Router(config-line)#login
+Router(config-line)#exec-timeout 5 0       # Logs out inactive sessions after 5 minutes
+Router(config-line)#exit
+
+method 2:
+Router>enable
+Router#configure terminal
+Router(config)#line console 0
+Router(config-line)#password secureConsole123
+Router(config-line)#login local
+Router(config-line)#exec-timeout 5 0       # Logs out inactive sessions after 5 minutes
+Router(config-line)#exit
+Router#username mohan password mohan
+Router#username mohan secret cisco
+Router(config)#service password-encryption
+
+
+2.Telnet:
+Router(config)#username admin password myAdminPassword
+Router(config)#username mohan privilege 15 secret moha
+Router(config)#enable secret level 10 moha
+Router(config)#line vty 0 4
+Router(config-line)#login local #makes the password the local one
+Router(config-line)#exit 
+Router(config)#enable secret moha 
+Router#show running-config | include line vty
+Router#show running-config | include username
+
+Router#telnet 10.1.1.1
+Router#show privilege
+Router>enable 10 
+
+________________________________
+static route
+________________________________
+-is manual way of adding routes on the router
+1.static route -small network
+2.dynamic route - many routers
+
+
+################
+commands
+################
+Router(config)#ip route 192.168.2.0(gateway you want to allow) 255.255.255.0 10.1.1.2 (thru the other router)
+Router#show ip route
+
+-Loopback interfaces are always up (as long as they are not administratively shut down), making them a reliable way to assign an IP address to the router.
+
+
+Serial0/1              10.1.1.2 
+Router1(config)#int loopback 0       #logical ip address never goes down
+Router1(config-if)#ip address 192.168.1.1 255.255.255.0
+Router1(config-if)#no sh
+
+Serial0/1              10.1.1.1
+Router2#conf t
+Router2(config)#ip route 192.168.1.0 255.255.255.0 10.1.1.2
+Router2#show ip route
+Router2#ping 192.168.1.1
+
+
+--------------------------------
+Floating static route
+--------------------------------
+-A floating static route is a backup static route that is configured with a higher administrative distance than the primary route.
+
+1.Configure the primary static route:
+Router(config)#ip route 10.0.0.0 255.255.255.0 192.168.1.1
+
+2.Configure the floating static route with a higher AD:
+Router(config)#ip route 10.0.0.0 255.255.255.0 192.168.2.1 5
+- 5 is the administrative distance of the floating route (higher than 1)
+
+3.Verification
+Router#show ip route
+
+NOTE:
+show cdp neighbors
+
+
+Router2(config)#int loopback 0
+Router(config-if)#ip address 100.1.1.1 255.255.255.0
+
+Router1(config)#ip route 100.1.1.1 255.255.255.255 10.1.1.2
+Router1(config)#ip route 100.1.1.1 255.255.255.255 20.1.1.2
+Router1#show ip route
+Router#traceroute 100.1.1.1
+
+
+--------------------------
+Default route
+--------------------------
+- is a manually configured route used when a router doesn't have a more specific route to a destination in its routing table.
+
+
+ip route 0.0.0.0 0.0.0.0 [next-hop-ip | exit-interface] [administrative-distance]
+examples:
+Router(config)#ip route 0.0.0.0 0.0.0.0 192.168.1.1
+Router(config)#ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/0
+
+-------------------------------------
+RIP Dynamic Routing
+-------------------------------------
+-RIP (Routing Information Protocol) is one of the oldest and simplest distance-vector dynamic routing protocols. It allows routers to exchange routing information dynamically and automatically updates routing tables.
+####################
+Key Features of RIP
+####################
+1.Distance Vector Protocol:
+
+Routes are advertised based on hop count.
+Each hop is counted as 1.
+Maximum hop count is 15 (16 is considered unreachable).
+
+2.Periodic Updates:
+
+RIP routers send updates every 30 seconds to their neighbors.
+
+3.Administrative Distance:
+
+RIP has a default administrative distance of 120.
+
+4.Routing Metric:
+
+Only considers hop count, not bandwidth or delay.
+
+5.Versions:
+
+RIP v1: Classful (does not support subnet masks).
+RIP v2: Classless (supports subnet masks, authentication, and multicast updates).
+
+##################
+RIP CONFIGURATION
+##################
+Step 1: Enable RIP
+Router(config)#router rip
+
+Step 2: Specify RIP Version
+For RIP v1:
+Router(config-router)#version 1
+For RIP v2:
+Router(config-router)#version 2
+
+Step 3: Advertise Networks
+Add the networks directly connected to the router:
+Router(config-router)#network 192.168.1.0
+Router(config-router)#network 192.168.2.0
+
+Step 4: Disable Auto-Summary (Optional for RIP v2)
+RIP automatically summarizes routes. To disable:
+Router(config-router)#no auto-summary
+
+Step 5: Exit RIP Configuration
+Router(config-router)#exit
+
+Step 6: Verification
+Router#show ip protocol
+Router#show ip route
+Router#debug ip rip
+
+
+
+
+
+ 
+
+

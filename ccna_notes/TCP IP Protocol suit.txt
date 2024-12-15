@@ -1,0 +1,80 @@
+------------------------
+ TCP/IP protocol suite
+------------------------
+
+-The TCP/IP protocol suite (Transmission Control Protocol/Internet Protocol) is a set of networking protocols that allows communication across interconnected networks.
+
+----------------------------
+4 Layers of the TCP/IP Model
+----------------------------
+
+1.Application Layer --> Corresponds to the OSI model's Application, Presentation, and Session layers. Provides high-level protocols for network communication. Facilitates user interaction with the network through services like web browsing, email, and file transfer.
+
+Protocols:
+HTTP/HTTPS: Web browsing.
+FTP: File transfer.
+SMTP: Email transmission.
+DNS: Domain name resolution.
+SNMP: Network management
+
+
+2.Transport Layer --> Ensures reliable data transfer between devices. Manages error detection, flow control, and data segmentation.
+
+Supports two main protocols:
+
+Protocols:
+
+i. TCP (Transmission Control Protocol): Reliable, connection-oriented protocol that ensures data delivery.
+ii. UDP (User Datagram Protocol): Faster, connectionless protocol without guaranteed delivery, suitable for real-time applications like streaming.
+
+
+3.Internet Layer --> Handles logical addressing, routing, and packet forwarding across networks. Determines the best path for data delivery.
+
+Protocols:
+
+i. IP (Internet Protocol): Core protocol for addressing and routing packets.
+IPv4: 32-bit addressing.
+IPv6: 128-bit addressing.
+
+ii. ICMP (Internet Control Message Protocol): Used for error reporting and diagnostics (e.g., ping).
+
+iii. ARP (Address Resolution Protocol): Resolves IP addresses to MAC addresses.
+
+iv. RARP (Reverse ARP): Maps MAC addresses to IP addresses.
+
+4.Network Access Layer (Link Layer) --> Handles physical hardware connections and the transmission of data frames. Interacts with the physical medium (cables, switches).
+
+Examples:
+Ethernet, Wi-Fi, PPP (Point-to-Point Protocol).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
