@@ -1,0 +1,140 @@
+--------------------------------------
+Layer 2 Access Switch Port
+--------------------------------------
+-A Layer 2 access switch port is a type of switch port configured to operate in Layer 2 mode,
+meaning it handles Ethernet frames without any routing (Layer 3 functionality). These ports are 
+primarily used to connect end devices like PCs, printers, or servers to the network.
+
+################################
+Characteristics of Access Ports
+################################
+1.No Inter-VLAN Communication --> Communication between devices in different VLANs requires a 
+Layer 3 device (like a router or Layer 3 switch).
+
+2.End Device Connections --> Typically used to connect hosts like PCs, printers, or VoIP phones 
+to the switch.
+
+3.No VLAN Tagging --> Traffic sent from the device connected to an access port is untagged, 
+as VLAN tagging is only done for trunk ports.
+
+4.Single VLAN Membership --> Each access port is assigned to a single VLAN. Devices connected to 
+this port belong to the same VLAN.
+
+############
+COMMANDS
+############
+Switch>enable
+Switch#configure terminal
+Switch(config)#interface fa0/1
+Switch(config-if)#switchport mode access
+Switch(config-if)#switchport access vlan 10
+Switch(config-if)#no shutdown
+Switch(config-if)#exit
+Switch(config)#exit
+Switch#show vlan brief
+
+
+NOTE:
+Switch#configure terminal
+Switch(config)#interface fa0/1
+Switch(config-if)#no switchport       #to disable switchport
+Switch(config-if)#ip address 192.168.1.2 255.255.255.0
+
+----------------------------------
+layers 2 dynamic switchports
+----------------------------------
+-Layer 2 dynamic switchports use Dynamic Trunking Protocol (DTP) to automatically negotiate the 
+link type (access or trunk).
+-The Dynamic Trunking Protocol is a proprietary networking protocol developed by Cisco Systems for
+the purpose of negotiating trunking on a link between two VLAN-aware switches, and for negotiating 
+the type of trunking encapsulation to be used
+
+##########################
+Dynamic Switchport Modes
+##########################
+
+1.Access Mode:
+
+The port is forced to remain in access mode and does not negotiate to become a trunk.
+Command:
+
+Switch(config-if)#switchport mode access
+
+2.Trunk Mode:
+
+The port is forced to operate as a trunk and does not negotiate.
+Command:
+
+Switch(config-if)#switchport mode trunk
+
+3.Dynamic Auto:
+
+The port waits for the other side to initiate trunking. If the other side is set to dynamic 
+desirable or trunk mode, the port will form a trunk.
+This is the default DTP mode on Cisco switches.
+Command:
+
+Switch(config-if)#switchport mode dynamic auto
+
+4.Dynamic Desirable:
+
+The port actively tries to form a trunk by sending DTP negotiation messages to the other side. 
+If the other side is set to dynamic auto, dynamic desirable, or trunk mode, the port will form a trunk.
+Command:
+
+Switch(config-if)#switchport mode dynamic desirable
+
+5.Nonegotiate:
+
+This disables DTP completely, and the port does not send or accept any DTP negotiation frames. 
+Use this with manual trunk configuration.
+Command:
+
+Switch(config-if)#switchport nonegotiate
+
+
+---------------------------
+802.1q Dynamic trunking
+---------------------------
+-Dynamic trunking in a switch network allows ports to dynamically negotiate whether they should 
+operate as trunk ports or access ports using the Dynamic Trunking Protocol (DTP)
+#############
+COMMANDS
+#############
+Switch1(config)#interface fa0/1
+Switch1(config-if)#switchport mode dynamic desirable
+Switch1(config-if)#switchport trunk encapsulation dot1q
+Switch1(config-if)#no shutdown
+Switch1(config-if)#exit
+
+Switch2(config)#interface fa0/1
+Switch2(config-if)#switchport mode dynamic auto
+Switch2(config-if)#switchport trunk encapsulation dot1q
+Switch2(config-if)#no shutdown
+Switch2(config-if)#exit
+
+Switch#show dtp interface fa0/1
+Switch#show spanning-tree
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

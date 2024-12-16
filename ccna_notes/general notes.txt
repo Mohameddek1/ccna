@@ -1659,9 +1659,66 @@ Verifying Timers and Passive Interfaces
 Router#show ip eigrp interfaces
 Router#show ip eigrp neighbors
 Router#show running-config
+Router#show i eigrp interaces detail se2/1
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-----------------------
+OSPF
+-----------------------
+-OSPF is a link-state routing protocol used for dynamic routing
+-It calculates the shortest path using the Dijkstra algorithm.
+-Divides the network into areas, with Area 0 (Backbone Area) being mandatory. --> summarization
+
+-Administrative Distance (AD): 110
+-lsdb -database
+-Hierarchical design (Areas reduce the size of routing tables).
+-Localize update with an Area
+-LSR <-- --> LSU  (DB)
+-LSA and LSACK
+
+enable OSPF on Routers
+
+R1(config)#router ospf 1
+R1(config-router)#router-id 1.1.1.1
+R1(config-router)#network 192.168.1.0 0.0.0.255 area 0
+R1(config-router)#network 10.1.1.0 0.0.0.3 area 0
+
+R2(config)#router ospf 1
+R2(config-router)#router-id 2.2.2.2
+R2(config-router)#network 192.168.2.0 0.0.0.255 area 0
+R2(config-router)#network 10.1.1.0 0.0.0.3 area 0
+
+Verify OSPF Neighbors:
+
+R1#show ip ospf neighbor
+R2#show ip ospf neighbor
+
+Authentication 
+
+R1(config)#interface Serial0/0/0
+R1(config-if)#ip ospf authentication message-digest
+R1(config-if)#ip ospf message-digest-key 1 md5 PASSWORD
+
+R2(config)#interface Serial0/0/0
+R2(config-if)#ip ospf authentication message-digest
+R2(config-if)#ip ospf message-digest-key 1 md5 PASSWORD
+
+Verification Commands
+
+R1#show ip ospf
+R1#show ip ospf interface
+R1#show ip ospf database
+
+OSPF DR/BDR
+
+Router(config)#interface g0/0
+Router(config-if)#ip ospf priority 10
+
+Router(config)#interface g0/0
+Router(config-if)#ip ospf priority 1
 
 
-
-
-
-
+***NOTE:
+no router ospf 1
+show ip protocols
+clear ip ospf process 
