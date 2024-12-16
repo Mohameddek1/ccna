@@ -1380,9 +1380,288 @@ Router#show ip route
 Router#debug ip rip
 
 
+-------------------------------
+RIP Authentication & modes
+--------------------------------
+-RIP authentication is used to secure RIP updates between routers, ensuring that only trusted routers participate in the routing domain. Authentication is supported only in RIP version 2 (RIP v1 does not support authentication).
+
+################################
+Types of Authentication in RIP
+################################
+1.Plaintext Authentication:
+
+Sends the password in plaintext, which is less secure.
+Easy to configure but not recommended in production environments.
+
+2.MD5 Authentication (Keyed Message Digest):
+
+Uses a hashing algorithm (MD5) to encrypt the authentication key (password).
+More secure and recommended for real-world use.
+The hash is transmitted instead of the password
+
+####################################
+Configuration of RIP Authentication
+####################################
+Step 1: Enable RIP v2
+RIP v2 must be configured to use authentication.
+
+Router(config)#router rip
+Router(config-router)#version 2
+
+
+Step 2: Configure Authentication Key
+Create a key chain and define the key (password) to be used.
+
+Router(config)#key chain RIP_AUTH
+Router(config-keychain)#key 1
+Router(config-keychain-key)#key-string mypassword
+Router(config-keychain-key)#exit
+Router(config-keychain)#exit
+
+
+Step 3: Apply Authentication to an Interface
+Bind the key chain to an interface and set the authentication type.
+
+Router(config)#interface fa0/0
+Router(config-if)#ip rip authentication mode md5
+Router(config-if)#ip rip authentication key-chain RIP_AUTH
+Router(config-if)#exit
+
+-For plaintext authentication:
+
+Router(config-if)#ip rip authentication mode text
+
+
+############
+lab
+############
+R1:
+R1>enable
+R1#configure terminal
+R1(config)#router rip
+R1(config-router)#version 2
+R1(config-router)#network 192.168.1.0
+R1(config-router)#network 192.168.2.0
+R1(config-router)#exit
+
+R1(config)#key chain RIP_AUTH
+R1(config-keychain)#key 1
+R1(config-keychain-key)#key-string securepass
+R1(config-keychain-key)#exit
+R1(config)#interface fa0/0
+R1(config-if)#ip rip authentication mode md5
+R1(config-if)#ip rip authentication key-chain RIP_AUTH
+R1(config-if)#exit
+
+R2:
+R2>enable
+R2#configure terminal
+R2(config)#router rip
+R2(config-router)#version 2
+R2(config-router)#network 192.168.2.0
+R2(config-router)#network 192.168.3.0
+R2(config-router)#exit
+
+R2(config)#key chain RIP_AUTH
+R2(config-keychain)#key 1
+R2(config-keychain-key)#key-string securepass
+R2(config-keychain-key)#exit
+R2(config)#interface fa0/0
+R2(config-if)#ip rip authentication mode md5
+R2(config-if)#ip rip authentication key-chain RIP_AUTH
+R2(config-if)#exit
+
+
+Verification Commands:
+Router#show ip route rip
+Router#show key chain
+Router#debug ip rip
+Router#show ip protocols
+Router#debug ip rip
+
+-----------------------------------
+Dynamic Routing EIGRP
+-----------------------------------
+-EIGRP (Enhanced Interior Gateway Routing Protocol) is a Cisco-proprietary dynamic routing protocol designed to improve scalability and efficiency compared to traditional protocols like RIP. It uses a mix of distance-vector and link-state characteristics, making it a hybrid protocol.
+
+####################
+Features of EIGRP
+####################
+1. Utilizes the DUAL (Diffusing Update Algorithm) for efficient and loop-free route calculation.
+2.Supports VLSM (Variable Length Subnet Mask) and CIDR (Classless Inter-Domain Routing).
+3. Sends updates only when changes occur (triggered updates) and only to affected routers (partial updates).
+4.Supports Multiple Network Protocols
+5.Load Balancing
+
+##############################
+EIGRP Configuration Steps
+##############################
+1. Enable EIGRP on the Router
+-EIGRP must be enabled in global configuration mode and tied to an autonomous system (AS) number.
+
+Router(config)#router eigrp 100
+Router(config-router)#network 192.168.1.0 0.0.0.255
+Router(config-router)#exit
+
+-100: Represents the EIGRP Autonomous System number.
+network 192.168.1.0 0.0.0.255: Advertises the 192.168.1.0/24 network.
+
+2. Configure Wildcard Masks
+EIGRP uses wildcard masks (inverse of a subnet mask) to specify networks.
+
+Router(config-router)#network 192.168.2.0 0.0.0.3
+
+-This advertises the network 192.168.2.0/30.
+
+3. Enable EIGRP on Specific Interfaces
+You can enable EIGRP on specific interfaces instead of entire networks.
+
+Router(config)#interface gigabitEthernet 0/1
+Router(config-if)#ip address 192.168.3.1 255.255.255.0
+Router(config-if)#ip eigrp 100
+
+-ip eigrp 100: Enables EIGRP for AS 100 on this interface
+
+
+4. EIGRP Authentication (Optional)
+EIGRP supports MD5 or SHA authentication for security.
+
+Step 1: Create a Key Chain
+
+Router(config)#key chain EIGRP_AUTH
+Router(config-keychain)#key 1
+Router(config-keychain-key)#key-string mySecureKey
+Router(config-keychain-key)#exit
+
+Step 2: Apply Key Chain to an Interface
+
+Router(config)#interface gigabitEthernet 0/1
+Router(config-if)#ip authentication mode eigrp 100 md5
+Router(config-if)#ip authentication key-chain eigrp 100 EIGRP_AUTH
+
+
+5.EIGRP Verification Commands
+
+Router#show ip eigrp neighbors
+Router#show ip route eigrp
+Router#show running-config | section eigrp
+Router#show ip eigrp traffic
+Router#debug eigrp packets
+show ip eigrp topology 
+
+
+-Feasible Successor: A backup route in EIGRP that satisfies the Feasibility Condition (FC).
+
+Configuration Steps
+1. Configure Secondary Link Between Routers
+Router1 Configuration:
+
+Router1(config)#interface g0/2
+Router1(config-if)#ip address 10.2.2.1 255.255.255.252
+Router1(config-if)#no shutdown
+Router1(config-if)#exit
+Router2 Configuration:
+
+Router2(config)#interface g0/2
+Router2(config-if)#ip address 10.2.2.2 255.255.255.252
+Router2(config-if)#no shutdown
+Router2(config-if)#exit
+
+2. Include Secondary Link in EIGRP
+Router1 Configuration:
+
+Router1(config)#router eigrp 100
+Router1(config-router)#network 10.2.2.0 0.0.0.3
+Router2 Configuration:
+
+Router2(config)#router eigrp 100
+Router2(config-router)#network 10.2.2.0 0.0.0.3
+
+3. Adjust Costs to Test Feasible Successor
+To manipulate the EIGRP metrics, adjust the bandwidth on the secondary link.
+
+Router1 Configuration:
+
+Router1(config)#interface g0/2
+Router1(config-if)#bandwidth 1000
+Router2 Configuration:
+
+Router2(config)#interface g0/2
+Router2(config-if)#bandwidth 1000
+This makes G0/2 the backup route because its feasible distance will be higher than the primary link (G0/1), but it will still satisfy the Feasibility Condition.
+
+4. Verify Feasible Successor
+On Router1:
+
+Router1#show ip eigrp topology
+Look for the output similar to this:
+
+P 192.168.20.0/24, 1 successors, FD is 30720
+    via 10.1.1.2 (30720/28160), G0/1
+    via 10.2.2.2 (33280/30720), G0/2
+Explanation:
+
+10.1.1.2 (30720/28160): Primary route (successor).
+10.2.2.2 (33280/30720): Backup route (feasible successor).
+The Feasibility Condition is satisfied because the reported distance (RD) of 30720 is less than the feasible distance (FD) of 33280.
+
+---------------------------------------
+EIGRP Timers and Passive Interfaces
+---------------------------------------
+1.EIGRP uses timers to determine how often it sends Hello packets and how long a router should wait before declaring a neighbor as unreachable.
+
+i.Hello Timer:
+
+The time interval (in seconds) at which EIGRP routers send Hello packets to their neighbors.
+Default value:
+5 seconds on most links (e.g., Ethernet, Serial with bandwidth > 1.544 Mbps).
+60 seconds on low-bandwidth links (e.g., Serial with bandwidth < 1.544 Mbps).
+A router expects to receive Hello packets from neighbors within the Hello interval to maintain the neighbor relationship.
+
+ii.Hold Timer:
+
+The time (in seconds) a router waits without receiving Hello packets before declaring a neighbor unreachable.
+Default value: 3 times the Hello Timer (15 seconds) on most links.
+If the Hold Timer expires, the router removes the neighbor from its table.
+
+
+##################################
+Configuring EIGRP Timers
+##################################
+-both sides
+
+Router(config)#interface g0/0
+Router(config-if)#ip hello-interval eigrp 100 10   # Change Hello Timer to 10 seconds
+Router(config-if)#ip hold-time eigrp 100 30       # Change Hold Timer to 30 seconds
+
+
+2. Passive Interfaces in EIGRP
+-A passive interface is an interface on which EIGRP stops sending Hello packets, thus preventing EIGRP neighbor relationships from being established on that interface. However, the network on the passive interface is still advertised in EIGRP.
+
+###################################
+Configuring Passive Interfaces
+###################################
+-Make an Interface Passive:
+
+Router(config)#router eigrp 100
+Router(config-router)#passive-interface g0/1
+
+-Make All Interfaces Passive by Default:
+
+Router(config)#router eigrp 100
+Router(config-router)#passive-interface default
+Router(config-router)#no passive-interface g0/0
+Router(config-router)#no passive-interface g0/1
+
+
+Verifying Timers and Passive Interfaces
+
+Router#show ip eigrp interfaces
+Router#show ip eigrp neighbors
+Router#show running-config
 
 
 
- 
+
 
 
