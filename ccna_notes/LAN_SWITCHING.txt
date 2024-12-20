@@ -117,24 +117,675 @@ Switch#show dtp interface fa0/1
 Switch#show spanning-tree
 
 
+---------------------------------------
+802.1q native vlan
+---------------------------------------
+-In 802.1Q trunking, a native VLAN is the VLAN that carries untagged traffic on a trunk link.
+
+##########################################
+Key Points about Native VLANs
+##########################################
+1.Default Native VLAN:
+
+On most Cisco switches, the default native VLAN is VLAN 1.
+It can be changed to another VLAN for better network segmentation and security.
+
+2.Untagged Traffic:
+
+Traffic on the trunk link that is not tagged with any VLAN ID is sent to the native VLAN.
+Tagged traffic is forwarded to the appropriate VLAN based on its VLAN ID.
+
+3.Native VLAN Mismatch:
+
+If the native VLAN is not the same on both ends of the trunk link, it can lead to communication issues and spanning-tree protocol instability.
+Always ensure that both ends of the trunk have the same native VLAN configured.
+
+4.Security Concerns:
+
+Leaving VLAN 1 as the native VLAN can expose your network to VLAN hopping attacks. It is best to change the native VLAN to an unused VLAN ID for security.
+
+
+############
+labs
+############
+Step 1: Create VLANs
+On Switch1&2:
+
+Switch1>enable
+Switch1#configure terminal
+Switch1(config)#vlan 10
+Switch1(config-vlan)#name VLAN10
+Switch1(config-vlan)#exit
+Switch1(config)#vlan 20
+Switch1(config-vlan)#name VLAN20
+Switch1(config-vlan)#exit
+Switch1(config)#vlan 99
+Switch1(config-vlan)#name Native_VLAN
+Switch1(config-vlan)#exit
+
+-repeat on sw2
+
+Switch1(config)#interface fa0/1
+Switch1(config-if)#switchport mode trunk
+Switch1(config-if)#switchport trunk encapsulation dot1q
+Switch1(config-if)#switchport trunk native vlan 99
+Switch1(config-if)#no shutdown
+
+Switch2(config)#interface fa0/1
+Switch2(config-if)#switchport mode trunk
+Switch2(config-if)#switchport trunk encapsulation dot1q
+Switch2(config-if)#switchport trunk native vlan 99
+Switch2(config-if)#no shutdown
+
+Switch#show spanning-tree vlan 99
+Switch#show dtp interface fa0/1
+Switch#show spanning-tree inconsistentports
+Switch#show interfaces trunk 
+
+
+-----------------------
+DTP Negotiation
+-----------------------
+-DTP Negotiation refers to the process of dynamically forming a trunk 
+link between two connected switches using Cisco's Dynamic Trunking Protocol (DTP).
+
+#############
+DTP Modes
+#############
+
+The behavior of a port during DTP negotiation depends on the DTP mode configured on the interfaces at both ends of the link.
+
+1.Access:
+
+The port operates as an access port, meaning it belongs to a single VLAN and does not negotiate trunking.
+DTP is disabled in this mode.
+
+Switch(config-if)#switchport mode access
+
+2.Trunk:
+
+The port operates as a trunk port and carries traffic for multiple VLANs.
+DTP is disabled in this mode; the port becomes a trunk without negotiation.
+
+Switch(config-if)#switchport mode trunk
+
+3.Dynamic Auto:
+
+The port waits for the other side to request trunking but will not actively initiate it.
+If the other side is set to dynamic desirable or trunk, the link becomes a trunk.
+If the other side is access, the link becomes an access link.
+
+Switch(config-if)#switchport mode dynamic auto
+
+4.Dynamic Desirable:
+
+The port actively negotiates trunking with the other side.
+If the other side is set to dynamic auto, dynamic desirable, or trunk, the link becomes a trunk.
+If the other side is access, the link becomes an access link.
+
+Switch(config-if)#switchport mode dynamic desirable
+
+5.Nonegotiate:
+
+DTP is disabled, and the port does not send or respond to DTP frames.
+This is used when the port is manually set as a trunk, and the administrator wants to disable DTP for security or compatibility reasons.
+
+Switch(config-if)#switchport nonegotiate
+
+
+***NOTE:
+show interface fa0/1 switchport
+Show DTP Interface Fax/x
 
 
 
+---------------------------
+VTP Domain
+---------------------------
+- VTP domain is a group of switches that share VLAN configuration information using the VLAN Trunking Protocol (VTP).
+
+###############
+labs
+###############
+Step 1: Configure Switch1 (VTP Server)
+
+Switch1(config)#vtp domain CorpDomain
+Switch1(config)#vtp mode server
+Switch1(config)#vtp password cisco123
+Switch1(config)#exit
+Switch1#show vtp status
+Step 2: Configure Switch2 (VTP Client)
+
+Switch2(config)#vtp domain CorpDomain
+Switch2(config)#vtp mode client
+Switch2(config)#vtp password cisco123
+Switch2(config)#exit
+Switch2#show vtp status
+Step 3: Configure Switch3 (VTP Transparent)
+
+Switch3(config)#vtp domain CorpDomain
+Switch3(config)#vtp mode transparent
+Switch3(config)#vtp password cisco123
+Switch3(config)#exit
+Switch3#show vtp status
+Verification
+Create VLANs on the Server (Switch1):
+
+
+Switch1(config)#vlan 10
+Switch1(config-vlan)#name Sales
+Switch1(config-vlan)#exit
+
+Switch1(config)#vlan 20
+Switch1(config-vlan)#name HR
+Switch1(config-vlan)#exit
+Check VLAN Propagation:
+
+On Switch2 (Client), verify the VLANs were propagated:
+
+Switch2#show vlan brief
+On Switch3 (Transparent), VLANs are not propagated because transparent mode only forwards VTP advertisements.
+
+On all switches:
+
+Switch#show vtp status
+
+
+***NOTE:
+-A VTP transparent switch does not advertise its VLAN configuration and 
+does not synchronize its VLAN configuration based on received advertisements, 
+but transparent switches do forward VTP advertisements that they receive out 
+their trunk ports in VTP Version 2
+
+
+-----------------
+VTP PRUNING
+-----------------
+-VTP pruning is a feature in VLAN Trunking Protocol (VTP) that reduces unnecessary VLAN traffic on trunk links.
+- VTP pruning ensures that VLAN traffic is only forwarded across trunk links where it is needed.
+
+Step 1: Enable VTP Pruning on Switch1 (Server)
+
+Switch1(config)#vtp domain CorpDomain
+Switch1(config)#vtp mode server
+Switch1(config)#vtp pruning
+Switch1(config)#exit
+
+Step 2: Verify VTP Pruning
+On Switch1:
+
+Switch1#show vtp status
+Ensure the VTP Pruning Mode is enabled.
+
+Step 3: Check Pruned VLANs
+On Switch1:
+
+Switch1#show interfaces trunk
+This command will display:
+VLANs that are allowed on the trunk.
+VLANs that are pruned due to VTP pruning.
+
+***NOTE:
+Interface Fax/x
+switchport trunk pruning vlan 555, 7-19, 22, 43 --> these vlans will be prunned
+
+
+---------------------
+VTP Versions
+----------------------
+1. VTP Version 1 (VTPv1)
+    Introduced in: Early versions of Cisco switches.
+    
+    Key Features:
+    
+    Supports basic VLAN management (creating, deleting, and renaming VLANs).
+    Synchronizes VLAN information between switches within the same domain.
+    Does not support Token Ring VLANs.
+    Switches in transparent mode forward VTP advertisements but do not participate in VLAN synchronization.
+    
+    Limitations:
+    
+    Limited to 802.1Q VLANs.
+    Does not support private VLANs or extended VLANs (VLAN IDs above 1005).
+
+2. VTP Version 2 (VTPv2)
+Introduced in: Cisco IOS updates.
+
+Key Features:
+
+Includes all features of VTPv1.
+Adds support for Token Ring VLANs.
+Supports VTP pruning, which optimizes VLAN traffic on trunk links.
+Improves VLAN consistency checks (ensures VLAN configuration parameters match).
+Transparent Mode Improvement: Allows switches in transparent mode to forward VTPv2 advertisements, even if their VTP version is set to 1.
+
+Limitations:
+
+Does not support private VLANs or extended VLANs.
+No enhanced security features.
+
+3. VTP Version 3 (VTPv3)
+Introduced in: Cisco IOS 12.2(52)SE and later.
+
+Key Features:
+
+Includes all features of VTPv1 and VTPv2.
+Support for Extended VLANs:
+Manages VLAN IDs from 1 to 4094.
+Private VLAN Support:
+Supports configurations and management of private VLANs.
+Primary and Secondary Server Roles:
+Only the Primary Server can modify the VLAN database.
+Secondary servers can act as backups but cannot modify VLANs.
+Improved Security:
+Adds password authentication to VTP advertisements.
+Supports MST (Multiple Spanning Tree) configuration synchronization.
+Backward Compatibility:
+Works with VTPv1 and VTPv2 in mixed environments (must manually configure compatibility).
+
+Limitations:
+
+Configuration must be done carefully as it introduces the concept of primary servers.
+
+
+Comparison Table
+
+Feature	                    VTPv1	VTPv2	        VTPv3
+VLAN Management	            Yes	    Yes	            Yes
+Token Ring VLANs	        No	    Yes	            Yes
+VTP Pruning	                No	    Yes 	        Yes
+Extended VLANs (1006-4094)	No  	No  	        Yes
+Private VLANs	            No  	No  	        Yes
+Password Authentication	    No  	No  	        Yes
+Primary/Secondary Roles	    No  	No  	        Yes
+MST Support	                No  	No  	        Yes
+Backward Compatibility	    N/A 	Yes (with v1)	Yes (with v1 & v2)
+
+
+#######
+labs
+#######
+Step 1: Configure Primary Server (Switch 1)
+
+Switch1>enable
+Switch1#configure terminal
+Switch1(config)#hostname Switch1
+Switch1(config)#vtp domain CorpDomain
+Switch1(config)#vtp mode server
+Switch1(config)#vtp version 3
+Switch1(config)#vtp primary vlan
+Switch1(config)#vtp password SecurePass
+Switch1(config)#interface range fa0/1-2
+Switch1(config-if)#switchport mode trunk
+Switch1(config-if)#switchport trunk encapsulation dot1q
+Switch1(config-if)#no shutdown
+Switch1(config-if)#exit
+Switch1(config)#vlan 10
+Switch1(config-vlan)#name Sales
+Switch1(config-vlan)#vlan 20
+Switch1(config-vlan)#name Marketing
+Switch1(config-vlan)#exit
+
+Step 2: Configure Secondary Server (Switch 2)
+
+Switch2>enable
+Switch2#configure terminal
+Switch2(config)#hostname Switch2
+Switch2(config)#vtp domain CorpDomain
+Switch2(config)#vtp mode server
+Switch2(config)#vtp version 3
+Switch2(config)#vtp password SecurePass
+Switch2(config)#interface range fa0/1-2
+Switch2(config-if)#switchport mode trunk
+Switch2(config-if)#switchport trunk encapsulation dot1q
+Switch2(config-if)#no shutdown
+
+Step 3: Configure VTP Client (Switch 3)
+
+Switch3>enable
+Switch3#configure terminal
+Switch3(config)#hostname Switch3
+Switch3(config)#vtp domain CorpDomain
+Switch3(config)#vtp mode client
+Switch3(config)#vtp version 3
+Switch3(config)#vtp password SecurePass
+Switch3(config)#interface range fa0/1-2
+Switch3(config-if)#switchport mode trunk
+Switch3(config-if)#switchport trunk encapsulation dot1q
+Switch3(config-if)#no shutdown
+
+
+step 4: Add an Extended VLAN
+
+On the Primary Server (Switch 1):
+
+Switch1(config)#vlan 1006
+Switch1(config-vlan)#name HR
+Switch1(config-vlan)#exit
+Verify on the Client and Secondary Server:
+
+Switch#show vlan brief
+
+-Extended VLAN 1006 should synchronize across all switches
+-Extended vlans are avove 1004
+
+Switch#show vtp status
+Switch#show vtp password
+Switch#show interfaces trunk
+Switch#Show vtp devices
+
+
+--------------------------
+EtherChannel/Port Channel
+--------------------------
+-EtherChannel is a Layer 2 or Layer 3 technology that bundles 
+multiple physical links into one logical link to provide redundancy 
+and increased bandwidth.
+-EtherChannel ports are denoted with Po
+
+EtherChannel in Layer 2 and Layer 3
+
+Layer 2 EtherChannel:
+
+Operates as a single logical link within a switch or between switches.
+Works on Layer 2 switchports configured as access or trunk ports.
+Example Use Case: Between two switches to connect VLANs.
+
+Layer 3 EtherChannel:
+
+Configures the logical link with an IP address, acting as a routed port.
+Eliminates the need for separate Layer 3 interfaces for each physical link.
+Example Use Case: Between routers or Layer 3 switches for inter-VLAN routing.
+
+#####################
+EtherChannel Modes
+#####################
+
+EtherChannel can be configured using static (manual) mode or dynamic protocols (PAgP or LACP):
+
+1.Static (On):
+
+EtherChannel is manually configured without any negotiation protocols.
+Requires all switches to agree on channel settings (e.g., speed, duplex, VLANs).
+No negotiation occurs.
+
+Command:
+interface range fa0/1-2
+channel-group 1 mode on
+
+2.PAgP (Port Aggregation Protocol): Cisco proprietary protocol.
+
+-Maximum 8 ports/links can be bundled using PAgP.
+
+Modes:
+Auto: Passively waits for PAgP packets (does not initiate EtherChannel negotiation).
+Desirable: Actively sends PAgP packets to negotiate EtherChannel.
+
+Commands:
+interface range fa0/1-2
+channel-group 1 mode auto
+
+interface range fa0/1-2
+channel-group 1 mode desirable
+
+3.LACP (Link Aggregation Control Protocol): Open standard (IEEE 802.3ad).
+
+-Maximum 16 ports/links can be bundled using LACP. However- first 8 will be active and will be used inside bundle
+
+Modes:
+Passive: Passively waits for LACP packets (does not initiate EtherChannel negotiation).
+Active: Actively sends LACP packets to negotiate EtherChannel.
+
+Commands:
+interface range fa0/1-2
+channel-group 1 mode Passive
+
+interface range fa0/1-2
+channel-group 1 mode active
+
+#########################
+Verification Commands
+#########################
+
+i.Verify EtherChannel Summary:
+
+show etherchannel summary
+
+ii.View EtherChannel Interface Details:
+
+show etherchannel port-channel
+
+iii.Check Load Balancing:
+
+show etherchannel load-balance
+
+iv.Verify Protocol (PAgP or LACP):
+
+show etherchannel protocol
+
+############
+labs
+############
+
+Switch 1:
+
+Switch1>enable
+Switch1#configure terminal
+Switch1(config)#interface range fa0/1-4
+Switch1(config-if-range)#switchport mode trunk
+Switch1(config-if-range)#channel-group 1 mode active
+Switch1(config-if-range)#exit
+
+Switch 2:
+
+Switch2>enable
+Switch2#configure terminal
+Switch2(config)#interface range fa0/1-4
+Switch2(config-if-range)#switchport mode trunk
+Switch2(config-if-range)#channel-group 1 mode passive
+Switch2(config-if-range)#exit
+
+***NOTE:
+int fax/x
+speed 10
+duplex full/half
+
+
+----------------------
+layer 3 etherchannel
+----------------------
+
+
+2. Configure Routed Ports
+Convert the physical interfaces to routed ports: On SW1:
+
+Switch(config)#interface range fa0/1 - 2
+Switch(config-if-range)#no switchport
+Switch(config-if-range)#exit
+On SW2:
+
+Switch(config)#interface range fa0/1 - 2
+Switch(config-if-range)#no switchport
+Switch(config-if-range)#exit
+
+3. Create the EtherChannel
+Bundle the physical interfaces into a logical Port-Channel.
+
+On SW1:
+
+Switch(config)#interface range fa0/1 - 2
+Switch(config-if-range)#channel-group 1 mode active
+Switch(config-if-range)#exit
+Switch(config)#interface port-channel 1
+Switch(config-if)#no switchport
+Switch(config-if)#ip address 192.168.1.1 255.255.255.0
+Switch(config-if)#exit
+
+On SW2:
+
+Switch(config)#interface range fa0/1 - 2
+Switch(config-if-range)#channel-group 1 mode active
+Switch(config-if-range)#exit
+Switch(config)#interface port-channel 1
+Switch(config-if)#no switchport
+Switch(config-if)#ip address 192.168.1.2 255.255.255.0
+Switch(config-if)#exit
+4. Verify Layer 3 EtherChannel
+
+Verify EtherChannel:
+Switch#show etherchannel port-channel
+Switch#show etherchannel summary
+
+Ping Test: From SW1, ping SW2:
+Switch1#ping 192.168.1.2
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+------------------------
+Root bridge selection
+------------------------
+-The Root Bridge is the central reference point in an STP topology. 
+All switches calculate their paths to this root bridge to prevent 
+network loops. The root bridge is determined based on the 
+Bridge ID (BID), which consists of the following:
+
+Bridge Priority (default: 32768).
+MAC Address of the switch.
+
+-The switch with the lowest BID becomes the root bridge.
+##############################
+Root Bridge Election Process
+##############################
+i.Bridge Priority:
+
+Default priority is 32768.
+The switch with the lowest priority becomes the root bridge.
+If all switches have the same priority, the election is based on the MAC address.
+
+ii.MAC Address:
+
+If two switches have the same priority, the switch with the lowest MAC address becomes the root bridge.
+
+iii.Extended System ID:
+
+The VLAN ID is added to the priority value. For example, in VLAN 10, the priority is 32768 + 10 = 32778.
+#####################################
+Manually Configuring the Root Bridge
+#####################################
+To ensure a specific switch becomes the root bridge, configure its priority to a lower value than the default.
+
+Command to Configure Priority:
+Switch(config)#spanning-tree vlan <VLAN_ID> priority <value>
+
+Example: Setting priority to 4096 for VLAN 1:
+Switch(config)#spanning-tree vlan 1 priority 4096
+
+Command to Automatically Make a Switch the Root Bridge:
+Switch(config)#spanning-tree vlan <VLAN_ID> root primary
+
+-This automatically sets the priority to 4096 or lower than the current root bridge's priority.
+
+Backup Root Bridge
+To configure a secondary root bridge as a backup:
+Switch(config)#spanning-tree vlan <VLAN_ID> root secondary
+
+-This sets the priority to 16384 or a value slightly higher than the primary root bridge.
+
+########
+labs
+########
+Step 2: View the Current Root Bridge
+Use the following command on all switches to identify the current root bridge:
+
+Switch#show spanning-tree
+
+Step 3: Configure a Specific Switch as the Root Bridge
+On SW1 (set as the root bridge):
+
+Switch1(config)#spanning-tree vlan 1 priority 4096
+
+On SW2 and SW3 (set higher priorities):
+
+Switch2(config)#spanning-tree vlan 1 priority 8192
+Switch3(config)#spanning-tree vlan 1 priority 8192
+
+Verification Commands
+
+View Spanning-Tree Details:
+
+show spanning-tree
+-This shows the current root bridge and the path cost to it.
+
+View Spanning-Tree Summary:
+
+show spanning-tree summary
+
+Check Interface States:
+
+show spanning-tree interface <interface_id>
+
+***NOTE: 
+-Before the election, every switch will generate BPDU i.e. Hello Packets.
+-If PVST is being used then you can set “Root Bridge” for per-VLAN. i.e. 
+One switch can be root bridge for vlan 1 and may not be root bridge for vlan 2
+-Once elected, only “root bridge” sends BPDU.
+-There are two kinds of BPDUs. One is Configuration BPDU and second one is TCN(Topology change BPDU).
+-TCN BPDUs can be sent by any switch when there is a change in the topology i.e. when there is any 
+link down or path change.
+-Kindly note that Post election of Root Bridge, it sends only “Configuration BPDU”. However, 
+TCN BPDU can be sent by any switch even after Root Bridge is elected.
+-All the ports of Root Bridge will be in forwarding state and known as “Designated Port”.
+-Root Port is known as a physical path with lowest STP cost to reach Root Bridge.
 
 
 
+---------------------
+Root port election
+---------------------
+- the Root Port (RP) is the port on a non-root bridge that has the 
+best path to the root bridge. The root port is determined through 
+a process of path cost comparison and helps establish a loop-free 
+topology in the network.
+
+lowering cost:
+interface fax/x
+spanning-tree vlan 1 cost 11
+
+show spanning-tree vlan 1
+
+-Default Port cost for Ethernet Link is 100, Fast Ethernet is 19, Gigabit Ethernet is 4,
+ Ten Gigabit Ethernet is 2
+
+ -Following the Criteria of selecting Root Port if there is tie on Cost Value
+ i.The lowest BID of upstream device in the path to the root bridge.
+ ii.The lowest upstream Port ID of the selected upstream device.
+ iii.If still there is tie, then the lowest Local Port ID will come into play
 
 
+-Change in “Port Priority” can only be done on Port of Upstream Switch.
+-Let’s assume that we have tie to break at Cost as well at Lowest Sender 
+ Bridge IDthen, we can change the value on neighbor switch’s port.
+-Let’s say you are looking for breaking tie on SW2’s ports fa0/23 and 0/24 
+ and you reduced port priority on SW1’s port fa0/24 to 96 since it is an upstream Switch. 
+ After this change, fa0/24 of SW2 will become Root Port. Designate Port-ID will be 96 on Fa0/24 of SW2.
+lowering priority:
+sw1:
+spanning-tree vlan 1 detail
 
+sw2:
+interface fax/x
+spanning-tree vlan 1 port-priority 96
 
+Show spanning-tree vlan 1 detail
 
+-------------------------------
+STP Designate Port Selection
+-------------------------------
 
-
-
-
-
-
-
-
-
-
+-Designate Port’s Short Name is DP.
+-The Designated Port is the port that has the lowest Spanning 
+ Tree Path Cost on a particular Local Area Network (LAN) segment.
+-DP port will always be in Forwarding state similar to RP
+-First Rule in STP while assigning Port State Says, all of the ports of Root Bridge will be in DP state.
+-Second Rule states that if one end of the Local Area Network (LAN) segment is RP, then other end will be DP.
+-Third Rule, If, one end of a Local Area Network (LAN) segment is a Designated Port, other end is called as Non-Designated Port, if it is NOT a Root Port.
+-Non-Designated Port will be always in Blocking State, to avoid Layer 2 Switching loops.
