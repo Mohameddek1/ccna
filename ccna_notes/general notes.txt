@@ -778,7 +778,7 @@ Verification
 
 +++++++++++++++++++++++++++++++++++++++++++++++++
 ------------------------------
-Routing on stick
+Router on stick
 ------------------------------
 -"Routing on a Stick" is a method of enabling inter-VLAN routing on a network using a single physical connection between a switch and a router
 

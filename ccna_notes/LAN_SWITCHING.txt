@@ -789,3 +789,412 @@ STP Designate Port Selection
 -Second Rule states that if one end of the Local Area Network (LAN) segment is RP, then other end will be DP.
 -Third Rule, If, one end of a Local Area Network (LAN) segment is a Designated Port, other end is called as Non-Designated Port, if it is NOT a Root Port.
 -Non-Designated Port will be always in Blocking State, to avoid Layer 2 Switching loops.
+
+
+----------------
+STP Timers
+----------------
+1.Hello Timer:
+
+Determines how often BPDUs are sent by the root bridge.
+Default Value: 2 seconds.
+
+Command to Set:
+Switch(config)#spanning-tree vlan <vlan-id> hello-time <seconds>
+
+2.Forward Delay Timer:
+
+Defines the time a port spends in the Listening and Learning states.
+This timer ensures that loops are not created before the network converges.
+Default Value: 15 seconds (per state, totaling 30 seconds).
+
+Command to Set:
+Switch(config)#spanning-tree vlan <vlan-id> forward-time <seconds>
+
+3.Max Age Timer:
+
+Specifies how long a switch retains BPDU information received from the root bridge.
+If no BPDU is received within this time, the switch considers the topology invalid and recalculates.
+Default Value: 20 seconds.
+
+Command to Set:
+Switch(config)#spanning-tree vlan <vlan-id> max-age <seconds>
+
+################################
+STP States and Timers in Action
+################################
+Ports transition through the following states based on timers:
+
+i.Blocking:
+
+Port is blocked to prevent loops. Listens for BPDUs.
+No timer involved here.
+
+ii.Listening:
+
+Port listens to BPDUs to determine its role in the topology.
+Forward Delay Timer: 15 seconds.
+
+iii.Learning:
+
+Port learns MAC addresses but does not forward frames.
+Forward Delay Timer: 15 seconds.
+
+iv.Forwarding:
+
+Port forwards traffic and learns MAC addresses.
+No timer involved.
+
+v.Disabled:
+
+Port is administratively shut down.
+
+Verification Commands
+
+View Timer Values:
+
+Switch#show spanning-tree vlan <vlan-id>
+Detailed STP Information:
+
+Switch#show spanning-tree detail
+Active Port Roles:
+
+Switch#show spanning-tree
+
+enabling debug:
+
+Switch#debug spanning-tree events
+Switch#debug condition vlan 1
+Switch#conf t
+Switch(config)#service timestamps debug
+Switch#undebug all
+
+
+------------
+PortFast 
+------------
+-PortFast is a feature of Spanning Tree Protocol (STP) designed to improve network performance on access 
+ ports connected to end devices (such as PCs, printers, or servers).When PortFast is enabled, the port 
+ bypasses the traditional STP states of Listening and Learning and transitions immediately to the Forwarding state.
+
+Why Use PortFast?
+i.Fast Device Connectivity: It reduces the time required for end devices to connect to the network after they are powered on or connected.
+ii.Prevents DHCP Failures: End devices that rely on DHCP to get an IP address can fail if the port takes too long to transition to forwarding.
+iii.Access Ports Only: PortFast should only be used on ports connected to end devices (not switches or hubs) to avoid loops.
+
+1.Globally Enable PortFast on Access Ports:
+
+This applies PortFast to all access ports in the switch configuration.
+It will NOT be applicable on Trunk interfaces if enabled globally. 
+
+Switch(config)#spanning-tree portfast default
+verify:
+show spanning-tree interface fax/x Portfast
+Show spanning-tree summary
+
+2.Enable PortFast on a Specific Interface:
+
+Use this method to configure PortFast on a single port.
+
+Switch(config)#interface FastEthernet0/1
+Switch(config-if)#spanning-tree portfast
+
+3.Enable PortFast for a Range of Interfaces:
+
+Configure PortFast on multiple interfaces at once.
+
+Switch(config)#interface range FastEthernet0/1 - 10
+Switch(config-if-range)#spanning-tree portfast
+
+4.Verifying PortFast Configuration
+Use the following command to verify whether PortFast is enabled on an interface:
+
+Switch#show spanning-tree interface FastEthernet0/1 portfast
+
+5.Caution with PortFast
+If a port with PortFast enabled is connected to another switch, it can lead to network loops. To mitigate this risk:
+
+Use BPDU Guard to automatically disable the port if it receives a BPDU (indicating it's connected to a switch).
+Enable BPDU Guard:
+Switch(config-if)#spanning-tree bpduguard enable
+
+
+***NOTE:
+-Convergence state --> listening and learning stage
+
+
+
+---------------------
+UplinkFast in stp
+---------------------
+-UplinkFast is a Cisco-proprietary enhancement for Spanning Tree Protocol (STP) 
+ access layer switch. It ensures fast failover to a backup uplink port without waiting 
+ for the standard STP timers.
+-This feature only works on Legacy STP i.e. 802.1D while RSTP and MST has this feature embedded by default.
+-It should be enabled only on Non-Root Bridges because Root Port is selected only on Non-Root Bridges 
+ and that’s why it shouldn’t be enabled on Root Bridge because Root Bridge does not have Root Port.
+-This feature only works when Bridge Priority of switch is set to default value of 32768.
+-Uplinkfast changes the priority and cost so that bridge does not become root bridge.
+
+Why Use UplinkFast?
+Fast Failover: Speeds up the transition of a backup port to the Forwarding state, reducing downtime from 30-50 seconds (standard STP timer) to just a few seconds.
+Access Layer Optimization: Useful for access layer switches with multiple uplinks to the distribution or core layer.
+
+How UplinkFast Works
+When the primary uplink (root port) fails, a backup port in the Blocking state quickly transitions to Forwarding.
+UplinkFast sends dummy multicast frames from the newly active uplink to refresh the MAC address table across the network.
+
+Key Features of UplinkFast
+Fast Transition: Backup ports move immediately to the Forwarding state.
+Increased Cost: The switch artificially increases its path cost to make itself less likely to become the root bridge.
+Automatic MAC Update: Multicast frames ensure the MAC address table is updated across the network.
+
+Enable UplinkFast Globally:
+Switch(config)#spanning-tree uplinkfast
+
+Verify UplinkFast Configuration:
+Switch#show spanning-tree uplinkfast
+
+Output:
+UplinkFast is enabled
+UplinkFast has 30000 max-update-rate
+
+NOTE:
+Default Behavior:
+UplinkFast increases the bridge priority by 49,152 (making it unlikely to be selected as a root bridge).
+Increases port cost by 3,000 to ensure lower priority as the root port.
+
+
+
+---------------------
+BackboneFast
+---------------------
+-BackboneFast is another Cisco-proprietary enhancement to Spanning Tree Protocol (STP), 
+ designed to reduce the convergence time of the network in scenarios where an indirect link failure occurs. 
+ It focuses on optimizing the recovery process for links that are not directly connected to the failed segment.
+-It also requires Legancy STP i.e. 802.1d.
+-It is also used to reduce convergence timer but for indirect root-port link failure.
+-Without BackBoneFast, If indirect link failure occurs then max-age timer expires after 20 seconds, 
+ then switch starts the listening and learning state for new RP port which eventually takes 30 seconds. So, total convergence is of 50 seconds without BackBoneFast.
+-Switch receives inferior BPDU from neighbor switch if that switch loses the connection to Root Bridge.
+-So, inferior BPDUs keep coming for 20 seconds i.e. till the time mac-age does not expire.
+-A BPDU is considered inferior, if Root Bridge information contained in it is worst compared to the information from original Root Switch (Root Bridge), 
+ or the BPDU has longer distance to reach the current Root Switch (Root Bridge).
+-With Backbonefast enabled, it resets the max-age immediately and sends RLQ (Root Link Query) requests to its other neighbors to check if the connection to Root Bridge is down or not.
+-If switch receives any positive response of RLQ, it will assume the current Root Switch (Root Bridge) is still reachable
+-Thereafter, it starts the process of new Root Port election which will follow listening and learning stages.
+-Backbone Fast is pro-active using Root Link Query (RLQ) and when Backbone fast is implemented, it can minimize the max age timer interval.
+ By enabling Backbonefast the max-age timer can be skipped and the delay is minimized from 50 seconds to 30 seconds.
+
+
+Why Use BackboneFast?
+Indirect Link Failure Handling: Standard STP takes 50 seconds or more to recover from an indirect failure (a link between other switches in the topology fails).
+Faster Convergence: BackboneFast reduces the convergence time to 30 seconds by accelerating the transition to the correct topology after a failure.
+
+How BackboneFast Works
+BackboneFast allows switches to detect that the Root Port's path to the Root Bridge is lost indirectly.
+The switch bypasses the Max Age timer (20 seconds by default) by immediately starting the process of electing a new Root Port.
+
+Key Features
+Indirect Failure Detection: Reacts to inferior Bridge Protocol Data Units (BPDUs) received on blocked ports, indicating an upstream link failure.
+Reduces Max Age Timer: When enabled, switches do not wait for the Max Age timer to expire and begin re-convergence faster.
+Topology Independence: Useful in larger networks with multiple links and redundant paths.
+
+Configuration of BackboneFast
+
+Enable BackboneFast Globally:
+Switch(config)#spanning-tree backbonefast
+
+Verify BackboneFast Configuration:
+Switch#show spanning-tree backbonefast
+
+Example Network Setup
+Scenario: A switch topology where Switch A is the Root Bridge, and there is an indirect link failure between Switch B and Switch C.
+
+Without BackboneFast:
+
+Switch C receives inferior BPDUs (lower priority than the current Root Bridge).
+Switch C waits for the Max Age timer to expire (20 seconds) before taking action.
+With BackboneFast:
+
+Switch C immediately recognizes the indirect failure based on the inferior BPDUs.
+It skips the Max Age timer and recalculates the Root Port and Forwarding/Blocking states.
+
+
+
+------------------------
+BPDU Guard
+------------------------
+-BPDU Guard is a Spanning Tree Protocol (STP) feature that enhances 
+ network security and stability by protecting the network 
+ from potentially harmful BPDU (Bridge Protocol Data Unit) packets received on PortFast-enabled ports. 
+ It prevents unintended switches from participating in the spanning-tree topology
+
+1. Enable BPDU Guard Globally:
+This applies BPDU Guard to all PortFast-enabled ports.
+Switch(config)#spanning-tree portfast bpduguard default
+
+2. Enable BPDU Guard on a Specific Interface:
+You can apply BPDU Guard to specific interfaces.
+Switch(config)#interface fa0/1
+Switch(config-if)#spanning-tree bpduguard enable
+
+3. Disable Err-disable Auto-recovery (Optional):
+By default, err-disabled ports must be manually re-enabled.
+Switch(config)#errdisable recovery cause bpduguard
+Switch(config)#errdisable recovery interval 30
+
+4.verify
+-You can verify it using “show spanning-tree interface x/x detail” 
+to know whether it is enabled or not.
+-If port is disabled, then you can check using the commands 
+“show interface | include disable” or using “show interface x/x status err-disabled”
+-You can reset the port to make it working by “shut” and “no shut”
+-You also have an option to set automatic recovery using the command 
+“errdisable recovery cause bpduguard” and “errdisable recovery interval xx”
+-You can verify the err-disable recovery status using command 
+“show errdisable recovery”
+
+-----------------
+ BPDU Filter
+-----------------
+-BPDU Filter is a feature of STP that prevents Bridge Protocol Data Units (BPDUs)
+ from being sent or processed on specific ports
+-BPDUFilter is also required to be configured on ports where end-hosts are connected
+ or on ports where you do not expect BPDUs to receive.
+-It will silently discard or drop BPDUs received on Interface.
+-It does not move port in error disabled state. It keeps the port functional and operational.
+-It does not require port to be “Portfast” enabled when BPDUFilter configured on Interface.
+-If you enable it on Uplink ports, then it may cause temporary or permanent loopsin network because it will discard BPDUs.
+-Most Important thing is, it does not send BPDU on BPDUFilter enabled port unlike BPDUGuard.
+
+
+-If Portfast is not enabled on Interface and you enabled BPDUFilter Globally, then functionality will not work 
+ because BPDUFilter works in conjunction with Portfast
+-BPDUFilter will cease to work on Interface the moment it receives BPDU. It will simply remove “Portfast” 
+ functionality from the interface.
+
+1.Switch Configuration (Global):
+
+Switch(config)#spanning-tree portfast bpdufilter default
+Switch(config)#interface range fa0/1-2
+Switch(config-if-range)#spanning-tree portfast
+
+2.Switch Configuration (Interface-Specific):
+
+Switch(config)#interface fa0/1
+Switch(config-if)#spanning-tree bpdufilter enable
+
+3.Connect a Rogue Switch:
+
+Connect another switch to the Fa0/1 port.
+The rogue switch will not participate in STP as the port will neither send nor process BPDUs.
+
+4.Verify Port Behavior:
+
+Switch#show spanning-tree interface fa0/1
+
+
+Output:
+PortFast BPDU Filter enabled
+BPDUs are not sent or processed.
+
+show spanning-tree interface x/x detail
+
+Key Differences: BPDU Guard vs. BPDU Filter
+
+Feature	  | BPDU Guard	                                                    |   BPDU Filter
+Purpose	  | Disables the port upon receiving a BPDU.	                    |   Stops sending or receiving BPDUs.
+Effect	  | Err-disables the port when a BPDU is received.	                |   Disables STP communication on the port.
+Use Case  | Prevent rogue switches from joining the network.	            |   Reduce STP traffic on edge ports.
+Scope	  | Works with PortFast-enabled ports or manually configured ports.	|   Works globally or per interface.
+
+
+--------------------
+Root Guard
+--------------------
+-Root Guard is a Spanning Tree Protocol (STP) feature that prevents 
+ an unauthorized or misconfigured device from becoming the root bridge in your network.
+
+-This feature should only be implemented on all ports of Root Bridge.
+-This feature only works at Interface level. There is no option of enabling it Globally.
+-It moves the port in to “Root Inconsistent” state the moment it receives superior BPDU
+
+-enabled in non root Bridge
+
+###############################
+Steps to Enable Root Guard:
+###############################
+1.Enter Global Configuration Mode:
+Switch> enable
+Switch# configure terminal
+
+2.Select the Interface: Choose the interface where Root Guard should be applied (e.g., fa0/1):
+Switch(config)#interface fa0/1
+
+3.Enable Root Guard:
+Switch(config-if)#spanning-tree guard root
+
+4.Exit Configuration Mode:
+Switch(config-if)#exit
+Switch(config)#exit
+
+5.Save the Configuration:
+Switch#write memory
+
+6.Verification
+i.Check if Root Guard is enabled on an interface:
+Switch#show spanning-tree interface [interface-id] detail
+
+ii.Check for ports in a root-inconsistent state:
+Switch#show spanning-tree inconsistentports
+
+
+---------------------------------------------
+Loop Guard in Spanning Tree Protocol (STP)
+---------------------------------------------
+-Loop Guard is an STP feature that prevents a port from transitioning to the 
+ forwarding state when the expected BPDUs stop being received. It protects against
+ potential network loops caused by unidirectional link failures or software/hardware issues on a switch.
+-The STP loop guard feature provides additional protection against Layer 2 forwarding loops (STP loops).
+-An STP loop is created when an STP blocking port in a redundant topology erroneously transitions to the 
+ forwarding state mainly due to Unidirectional Link Failures
+-it should only be implemented on Non-Root Bridges.
+-It does not let “Blocking” port to move in “Forwarding” if the port stops receiving BPDUs.
+-Loop Guard can’t be run along with Root guard. Root guard is a security feature run on Root Bridges 
+ while Loop Guard is a loop prevention feature run on Non-Root Bridges. So, it does not make sense to run both on any interface.
+-You can verify the status using “show spanning-tree summary” or “show spanning-tree inconsistent”
+-Port is moved to “Inconsistent state” the moment it detects loop on Blocking port.
+-You can use the command “spanning-tree guard loop” under the interface.
+-You can use the global command “spanning-tree loopguard default”
+
+
+############################################
+Steps to Enable Loop Guard
+############################################
+1.Enable Globally:
+Switch> enable
+Switch# configure terminal
+Switch(config)#spanning-tree loopguard default
+
+2.Enable Per Interface:
+Switch(config)#interface fa0/1
+Switch(config-if)#spanning-tree guard loop
+
+3.Exit Configuration Mode:
+Switch(config-if)#exit
+Switch(config)#exit
+
+4.Save Configuration:
+Switch#write memory
+
+5.Verification
+Check for Loop Guard status on interfaces:
+Switch#show spanning-tree detail | include Loop
+Check ports in the loop-inconsistent state:
+Switch#show spanning-tree inconsistentports
+
+6. causing failures:
+Switch(config)#ip fax/X
+Switch(conf-if)# spanning-tree bpdufilter enable
+
