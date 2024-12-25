@@ -871,7 +871,7 @@ Switch#undebug all
 
 
 ------------
-PortFast 
+PortFast
 ------------
 -PortFast is a feature of Spanning Tree Protocol (STP) designed to improve network performance on access 
  ports connected to end devices (such as PCs, printers, or servers).When PortFast is enabled, the port 
@@ -1023,7 +1023,7 @@ It skips the Max Age timer and recalculates the Root Port and Forwarding/Blockin
 
 
 ------------------------
-BPDU Guard
+BPDU Guard 
 ------------------------
 -BPDU Guard is a Spanning Tree Protocol (STP) feature that enhances 
  network security and stability by protecting the network 
@@ -1056,7 +1056,7 @@ to know whether it is enabled or not.
 “show errdisable recovery”
 
 -----------------
- BPDU Filter
+ BPDU Filter -x
 -----------------
 -BPDU Filter is a feature of STP that prevents Bridge Protocol Data Units (BPDUs)
  from being sent or processed on specific ports
@@ -1198,3 +1198,506 @@ Switch#show spanning-tree inconsistentports
 Switch(config)#ip fax/X
 Switch(conf-if)# spanning-tree bpdufilter enable
 
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+----------------------------------------
+MST (Multiple Spanning Tree Protocol) -x
+----------------------------------------
+-The Multiple Spanning Tree Protocol (MST) is an enhancement of STP that allows multiple 
+ VLANs to be mapped to a single spanning tree instance, reducing the overhead of running 
+ separate spanning trees for each VLAN. The process of root bridge selection in MST is similar 
+ to other STP variants but applied to each MST instance (MSTI).
+
+-MST stands for Multiple Spanning Tree and is represented with 802.1s.
+-It is an IEEE standard which allows you to assign multiple VLANs to a single instance.
+-So, Root Bridge selection will be done for each instance rather than each VLAN.
+-MST is backward compatible with STP, RSTP, PVST.
+-By default, all VLANs are part of MST0 i.e. instance 0.
+
+-We need to make sure that MST name, revision, instance number are same on all the devices.
+-We can use VTP version 3 to sync MST configuration OR we can simply copy and paste the MST config.
+-Cost value in MST is different compared to STP, PVST.
+Ethernet has port cost of 2,000,000
+Fast Ethernet has value 200,000
+Gig has 20,000
+Ten Gig 2,000
+
+########################################
+enabling MST
+########################################
+ 1.how to enable MST:
+Switch(config)#spanning-tree mode mst
+2.Enter MST Configuration Mode:
+Switch(config)#spanning-tree mst configuration
+3.Set the MST Region Name:
+Switch(config-mst)#name MyRegion
+4.Set the MST Revision Number:
+Switch(config-mst)#revision 1
+5.Map VLANs to MST Instances:
+Switch(config-mst)#instance 1 vlan 10-20
+Switch(config-mst)#instance 2 vlan 30-40
+Switch(config-mst)#exit
+Switch(config)#spanning-tree mst 1 root primary
+Switch(config)#spanning-tree mst 2 root secondary
+
+6..Verifying MST Configuration
+
+Verify the MST configuration and VLAN-to-Instance mapping:
+
+Switch#show spanning-tree mst configuration
+
+Check the current spanning-tree topology for MST:
+
+Switch#show spanning-tree mst
+
+ ################################
+ How MST Root Bridge is Selected
+ ################################
+-The root bridge is elected for each MST instance using the Bridge ID (BID), 
+ just like in STP. The BID is composed of the following:
+
+i.Bridge Priority (Configurable, default is 32768).
+ii.Extended System ID (MST Instance number).
+iii.MAC Address (Tiebreaker if the priorities and MST instance numbers are the same).
+-The switch with the lowest BID becomes the root bridge for the specific MST instance.
+
+#################################
+Root Bridge Election Process
+#################################
+i.Priority Comparison:
+
+The switch with the lowest priority value wins. The default is 32768, but you can 
+manually lower it to increase the chance of becoming the root bridge.
+
+ii.Extended System ID:
+
+If priorities are equal, the switch compares the MSTI number (part of the Extended System ID).
+
+iii.MAC Address Comparison:
+
+If the priority and MSTI numbers are equal, the switch with the lowest MAC address 
+becomes the root bridge.
+
+
+##############################################
+How to Configure the Root Bridge
+##############################################
+Example Configuration for MST Root Bridge
+
+Switch(config)#spanning-tree mst 1 priority 24576
+Switch(config)#spanning-tree mst 2 priority 28672
+
+-Sets the priority for MST instance 1 and instance 2.
+
+Alternatively:
+
+Switch(config)#spanning-tree mst 1 root primary
+Switch(config)#spanning-tree mst 2 root secondary
+
+-Makes the switch the primary root for MST instance 1 and the secondary root for MST instance 2.
+
+Verifying MST Root Bridge
+You can verify the root bridge status for MST instances using the following commands:
+
+Switch#show spanning-tree mst
+
+
+#####################################
+Changing Path Costs Manually
+#####################################
+-You can manually influence path selection by adjusting the interface cost.
+
+-Root Port or RP is the port with the least accumulated cost to reach Root Bridge.
+-If cost is equal for all links or there is a tie, then Lowest Sender Bridge ID will be used.
+-If there is a tie of “lowest sender bridge id” as well then Lowest Sender Bridge’s port ID will be used” to break the tie.
+-MST uses RSTP in background for faster convergence.
+
+
+
+i.Adjusting Path Cost on an Interface:
+
+Switch(config)#interface FastEthernet0/1
+Switch(config-if)#spanning-tree mst 1 cost 500
+
+ii.Adjusting Cost Globally (Optional):
+-If required, you can change the global cost calculation method:
+
+Switch(config)#spanning-tree pathcost method long
+
+iii.Verifying Path Costs
+-To verify the cost of paths:
+
+Switch#show spanning-tree mst 1 detail
+
+
+###################################
+MST Path Selection using Priority
+###################################
+-If there is a tie in electing RP using Cost or Lowest Sender Bridge ID, then we use port-id to break tie.
+-Port-ID is combination of Port Priority and Port number.
+-Port which is receiving lowest Port ID from Neighbor Switch with become RP.
+-By default, port priority is 128. Value is from 0-240 and in multiple of 16.
+
+
+
+SwitchB(config)#interface FastEthernet0/1
+SwitchB(config-if)#spanning-tree mst 1 port-priority 64
+
+SwitchC(config)#interface FastEthernet0/2
+SwitchC(config-if)#spanning-tree mst 1 port-priority 128
+
+-You can verify the port-id which you are receiving from neighbor switch using the 
+command “show spanning-tree mst x interface x/x detail”
+-You can check RP using the command “show spanning-tree mst x”
+
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+-----------------------------------------------------
+UDLD (UniDirectional Link Detection) in Cisco -x
+-----------------------------------------------------
+-UDLD is a Cisco proprietary protocol used to detect and prevent unidirectional links in Layer 2 Ethernet networks
+-A unidirectional link occurs when the communication between two directly connected devices fails in one direction 
+ while working in the other. Such links can cause network issues like loops in Spanning Tree Protocol (STP) environments.
+
+-It uses its own keepalive mechanism unlike loop guard.
+-It is not part of Spanning-Tree
+-It is mainly used on Fiber ports for detecting RX or TX issues in fiber cables. Though it can also be used on ports where Copper Cables are connected.
+-If you enable it globally, then it will be applicable only on fiber ports.
+-If you enable it per interface then it will work on any port you configured it.
+-In Normal mode, during one directional issues, the state of neighbor will show as “Undetermind”.
+-Aggressive Mode will err-disable the port if it sees Unidirectional issues.
+-Aggressive mode switch sends 8 frames in total to ascertain if there is any issue. i.e. one frame per second.
+-Err-disabled port needs to be manually reset or you can set auto-recovery for udld.
+
+
+##########################
+Why UDLD Is Important
+##########################
+-Prevents Network Instability: Unidirectional links can lead to STP failures and network loops.
+-Ensures Bidirectional Communication: UDLD ensures that both ends of a link can transmit and receive traffic correctly.
+
+#########################
+How UDLD Works
+#########################
+-UDLD sends hello packets (UDLD protocol frames) between devices over Ethernet links.
+-Each device must acknowledge the receipt of these frames.
+-If a device stops receiving hello packets (indicating a potential unidirectional link), UDLD takes action based on the configured mode.
+
+#########################
+Modes of UDLD
+#########################
+1.Normal Mode:
+
+UDLD detects unidirectional links but only logs the issue.
+It does not disable the affected port.
+
+2.Aggressive Mode:
+
+If UDLD detects a unidirectional link, it disables the affected port to prevent network issues.
+Aggressive mode retries to re-establish the connection multiple times before disabling the port.
+
+######################
+Configuration of UDLD
+######################
+Step 1: Enable UDLD Globally
+Switch(config)#udld enable
+
+Step 2: Configure UDLD on Specific Interfaces
+i.Normal Mode:
+
+Switch(config)#interface GigabitEthernet0/1
+Switch(config-if)#udld port
+
+ii.Aggressive Mode:
+
+Switch(config)#interface GigabitEthernet0/1
+Switch(config-if)#udld port aggressive
+
+Step 3: Verify UDLD
+To check the UDLD status:
+Switch#show udld
+
+-Verification can be done with the command “show udld fax/x”. You can check the working state as “Bidirectional”
+-You can check udld neighbors using the command “show udld neighbors”
+
+
+-----------------------------------------
+Protected Ports in LAN Switching -x
+-----------------------------------------
+-Protected ports, also referred to as Private VLAN Edge (PVE) ports in Cisco switches, are a feature that restricts 
+ communication between specific ports within the same VLAN.
+-This feature is useful for enhancing security and isolating devices on a Layer 2 network.
+
+-If you want two ports not to exchange data or traffic then you can try the option of “Protected Ports”
+-However, it works only within the Switch and within a VLAN. It means both ports should be part of same switch and same vlan.
+-Note that Traffic from Non-Protected to Protected ports will work without any issues and vice-versa.
+
+####################################
+When to Use Protected Ports
+####################################
+i.Security Isolation:
+Prevent communication between devices within the same VLAN that should remain isolated (e.g., between users in public areas like cafes or airports).
+ii.Data Privacy:
+Isolate servers or virtual machines within the same VLAN for data protection.
+iii.Minimize Broadcast Traffic:
+Reduce unnecessary Layer 2 broadcast communication between hosts that do not need to interact.
+
+
+###################################################
+Configuration of Protected Ports on a Cisco Switch
+###################################################
+1.Enter Interface Configuration Mode:
+Switch(config)#interface FastEthernet0/1
+
+2.Enable Protected Port Feature:
+Switch(config-if)#switchport protected
+
+3.Repeat for Other Interfaces
+
+4.Save the Configuration:
+Switch#copy running-config startup-config
+
+5.Verification
+Switch#show running-config | include protected
+
+######
+labs
+######
+1.Configure VLAN 10 and assign ports:
+Switch(config)#vlan 10
+Switch(config-vlan)#exit
+
+Switch(config)#interface FastEthernet0/1
+Switch(config-if)#switchport mode access
+Switch(config-if)#switchport access vlan 10
+Switch(config-if)#switchport protected
+
+Switch(config)#interface FastEthernet0/2
+Switch(config-if)#switchport mode access
+Switch(config-if)#switchport access vlan 10
+Switch(config-if)#switchport protected
+
+Switch(config)#interface FastEthernet0/24
+Switch(config-if)#switchport mode access
+Switch(config-if)#switchport access vlan 10
+
+2.Verify the configuration:
+Switch#show running-config | include FastEthernet
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+------------------------------------------
+Traffic Storm Control -x
+------------------------------------------
+-Traffic Storm Control is a feature on network switches (like Cisco devices) 
+that helps prevent network performance degradation caused by excessive traffic 
+(broadcast, multicast, or unicast) on a switch port. It is often used to limit 
+the effects of broadcast storms, multicast floods, or unicast floods in Layer 2 networks.
+
+##########################################
+How Traffic Storm Control Works
+##########################################
+1.Threshold-Based Limiting: Storm control monitors the incoming traffic rate on 
+ a port and compares it to a defined threshold. If the traffic exceeds the threshold, 
+ the port can either drop packets or take other configured actions.
+2.Traffic Types Monitored:
+i.Broadcast Traffic: Frames sent to all devices in a broadcast domain.
+ii.Multicast Traffic: Frames sent to a specific group of devices.
+iii.Unicast Traffic: Traffic sent to a specific device but flooding due to unknown MAC addresses.
+3.Threshold Configuration: The threshold is usually set as a percentage of the port's total bandwidth.
+
+-You need to configure it on interface with Storm Control. Command is “storm-control broadcast level bps/pps/%age”
+-Similarly, you can set storm-control for unicast/multicast as well, however, these are supported only on Gig/10Gig interfaces and may depend upon Switch hardware.
+-You can also set “action” for storm-control. By default, it is set to “drop”. You can make it to generate “traps” or “shutdown or error-disable”
+-It is also a very good way to reduce the impact of Virus which generate unnecessary broadcast storm.
+
+##############################################
+Configuration of Traffic Storm Control
+##############################################
+1.Enable Storm Control on a Port:
+-Specify the traffic type (broadcast, multicast, or unicast) and threshold.
+-Example for limiting broadcast traffic to 50% of bandwidth:
+Switch(config)#interface FastEthernet0/1
+Switch(config-if)#storm-control broadcast level 50
+
+2.Set Threshold for Different Traffic Types:
+Switch(config)#interface FastEthernet0/1
+Switch(config-if)#storm-control broadcast level 20
+Switch(config-if)#storm-control multicast level 30
+Switch(config-if)#storm-control unicast level 40
+
+3.Configure Rising and Falling Thresholds:
+-Define separate thresholds for when the feature kicks in (rising) and when it stops (falling):
+-Rising threshold: Traffic limit that triggers storm control.
+-Falling threshold: Traffic limit that disables storm control.
+
+Switch(config-if)#storm-control broadcast level 50 30
+
+4.Verify Configuration:
+
+i.View Storm Control Status:
+Switch#show storm-control
+ii.Check Traffic Statistics:
+Switch#show storm-control traffic
+
+
+####################################
+Example Configuration
+####################################
+Scenario: Limit broadcast traffic on port 0/1 to 10% of bandwidth and multicast traffic to 20%.
+Switch(config)#interface GigabitEthernet0/1
+Switch(config-if)#storm-control broadcast level 10
+Switch(config-if)#storm-control multicast level 20
+Switch(config-if)#storm-control action shutdown
+
+Explanation:
+storm-control broadcast level 10: Limits broadcast traffic to 10% of the port's bandwidth.
+storm-control multicast level 20: Limits multicast traffic to 20% of the port's bandwidth.
+storm-control action shutdown: Shuts down the port if the threshold is exceeded.
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+--------------------------------------
+SPAN (Switched Port Analyzer) -x
+--------------------------------------
+-SPAN (Switched Port Analyzer) is a Cisco feature that mirrors traffic from one or more switch ports or VLANs to another port,
+ where the traffic can be analyzed. It’s commonly used for troubleshooting, network monitoring, or intrusion detection.
+
+-If your destination port or server is in different Layer 3 domain, then use ERSPAN(Encapsulated RSPAN).
+-Kindly note, ERSPAN is supported in High End models like Nexus
+
+#####################################
+How It Works:
+#####################################
+1.Source Port: The port(s) from which traffic is copied. This can be one or multiple ports, or even an entire VLAN.
+2.Destination Port: The port to which the copied traffic is sent. This port is connected to a network analyzer or monitoring device.
+3.Traffic Direction: You can specify whether to monitor ingress (incoming), egress (outgoing), or both directions of traffic.
+i.Ingress (Rx): Mirrors traffic received by the source port.
+ii.Egress (Tx): Mirrors traffic sent out of the source port.
+iii.Both (Rx/Tx): Mirrors both ingress and egress traffic.
+
+#####################################
+Types of SPAN
+#####################################
+Local SPAN: Monitors traffic within the same switch.
+Remote SPAN (RSPAN): Allows traffic to be mirrored across different switches using a dedicated VLAN.
+Encapsulated Remote SPAN (ERSPAN): Extends RSPAN functionality by encapsulating mirrored traffic in GRE (Generic Routing Encapsulation) packets, allowing traffic to traverse Layer 3 networks.
+
+
+#########################################
+Local SPAN Configuration
+#########################################
+-If you want destination port to receive traffic from end host then we need to use the command “monitor session x destination interface x/x ingress vlan x”
+-Above command will place the “Untagged traffic from host to VLAN X”
+-Make sure that destination port is configured with the same VLAN.
+
+
+1. Enter Configuration Mode
+Switch#configure terminal
+
+2. Create a SPAN Session
+Switch(config)#monitor session 1 source interface FastEthernet0/1
+
+3.Specify the Destination Port
+Switch(config)#monitor session 1 destination interface FastEthernet0/2
+
+
+4.Monitor Specific Traffic Direction:
+
+i.Ingress Traffic Only
+Switch(config)#monitor session 1 source interface FastEthernet0/1 rx
+
+ii.Egress Traffic Only
+Switch(config)#monitor session 1 source interface FastEthernet0/1 tx
+
+iii.Both Directions
+Switch(config)#monitor session 1 source interface FastEthernet0/1 both
+
+5.Verify Configuration:
+Switch#show monitor
+Switch#show monitor session 1
+
+
+###############################################
+RSPAN Configuration
+###############################################
+-RSPAN is used when You want to Capture the data of a port in one switch (Source) 
+and want to copy it to a port in another Switch (Destination). It means Source and Destination Ports are in different Switches.
+-This VLAN should be present in all Transit Switches and should be allowed in Trunks. Moreover, it should be “remote-span” vlan.
+
+Scenario:
+Mirror VLAN 20 traffic from Switch A to Switch B.
+
+On Switch A (Source Switch):
+i.Create an RSPAN VLAN:
+
+SwitchA(config)#vlan 999
+SwitchA(config-vlan)#remote-span
+
+ii.Configure the RSPAN Session:
+
+SwitchA(config)#monitor session 1 source <vlan 20>/interface <fax/x>
+SwitchA(config)#monitor session 1 destination remote vlan 999
+
+On Switch B (Destination Switch):
+iii.Create the RSPAN VLAN:
+
+SwitchB(config)#vlan 999
+SwitchB(config-vlan)#remote-span
+
+iv.Configure the RSPAN Session:
+
+SwitchB(config)#monitor session 1 source remote vlan 999
+SwitchB(config)#monitor session 1 destination interface FastEthernet0/3
+
+###########################
+ERSPAN Configuration
+###########################
+Scenario:
+Mirror traffic from a source interface on one device across a Layer 3 network to a destination device.
+
+Configuration on the Source Device
+
+1.Enter Configuration Mode:
+Router(config)#monitor session 1 type erspan-source
+
+2.Specify the Source Interface and Traffic Direction:
+Router(config-mon-erspan-src)#source interface FastEthernet0/1 both
+
+3.Assign an ERSPAN ID:
+Router(config-mon-erspan-src)#erspan-id 100
+
+4.Specify the Destination IP Address (the device to receive the ERSPAN traffic):
+Router(config-mon-erspan-src)#destination ip 192.168.1.1
+
+5.Exit:
+Router(config-mon-erspan-src)#end
+
+Configuration on the Destination Device
+
+1.Enter Configuration Mode:
+Router(config)#monitor session 1 type erspan-destination
+
+2.Specify the Source IP Address (where the ERSPAN packets come from):
+Router(config-mon-erspan-dst)#source ip 192.168.1.1
+
+3.Set the Destination Interface:
+Router(config-mon-erspan-dst)#destination interface FastEthernet0/2
+
+4.Exit:
+Router(config-mon-erspan-dst)#end
+
+Verification Commands
+
+1.Check ERSPAN Session on the Source Device:
+Router#show monitor session 1
+
+2.Check ERSPAN Session on the Destination Device:
+Router#show monitor session 1
+
+3.Check Interface Statistics (on the destination interface):
+Router#show interfaces FastEthernet0/2 counters
