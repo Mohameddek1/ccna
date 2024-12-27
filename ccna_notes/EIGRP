@@ -1,0 +1,605 @@
+-EIGRP is the simplest protocol to run in Enterprise Network. 
+-It stands for “Enhanced Interior Gateway Routing Protocol”.
+-To check Neighbors, use the command “Show ip eigrp neighbors”. 
+ You will find neighbor’s IP address, uptime, SRTT (Smooth Round Trip Time), Q count and RTO
+-Make sure Q count is 0 else it would mean there is congestion or issues in your network.
+
+-In case you want to reduce your efforts, then you can use the command “network 0.0.0.0 0.0.0.0” under EIGRP configuration mode. This command will enable EIGRP on all interfaces.
+-The interfaces which are in “shutdown” state, those networks would not be advertised or propagated.
+
+
+---------------------
+EIGRP Features
+---------------------
+Topology Overview
+Router 1 (R1):
+Loopback0: 1.1.1.1/32
+FastEthernet0/0: 192.168.12.1/24
+
+Router 2 (R2):
+Loopback0: 2.2.2.2/32
+FastEthernet0/0: 192.168.12.2/24
+
+
+
+1. Configure R1
+Enter Global Configuration Mode:
+enable
+configure terminal
+Configure Loopback0 Interface:
+
+interface Loopback0
+ip address 1.1.1.1 255.255.255.255
+no shutdown
+Configure FastEthernet0/0 Interface:
+
+interface FastEthernet0/0
+ip address 192.168.12.1 255.255.255.0
+no shutdown
+Enable EIGRP:
+
+router eigrp 100
+network 1.1.1.1 0.0.0.0
+network 192.168.12.0 0.0.0.255
+no auto-summary
+
+
+2. Configure R2
+Enter Global Configuration Mode:
+
+enable
+configure terminal
+Configure Loopback0 Interface:
+
+interface Loopback0
+ip address 2.2.2.2 255.255.255.255
+no shutdown
+Configure FastEthernet0/0 Interface:
+
+interface FastEthernet0/0
+ip address 192.168.12.2 255.255.255.0
+no shutdown
+Enable EIGRP:
+
+router eigrp 100
+network 2.2.2.2 0.0.0.0
+network 192.168.12.0 0.0.0.255
+no auto-summary
+
+
+3. Verification
+Check EIGRP Neighbors
+
+On both routers, verify that they are neighbors:
+show ip eigrp neighbors
+Verify the Routing Table
+Check the routing table to ensure the loopback interfaces are learned through EIGRP:
+show ip route
+
+Test Connectivity
+From R1, ping R2's loopback:
+ping 2.2.2.2
+From R2, ping R1's loopback:
+ping 1.1.1.1
+
+
+------------------------------------
+static neighbors in EIGRP
+------------------------------------
+-If Static Neighbors are configured then dynamic neighborship won’t work or in fact will fail if running.
+-EIGRP Multicast IP is 224.0.0.10.
+
+Steps to Configure EIGRP Neighbors
+Topology
+Router 1 (R1):
+IP Address: 192.168.1.1/24
+
+Router 2 (R2):
+IP Address: 192.168.1.2/24
+
+Router 3 (R3):
+IP Address: 192.168.1.3/24
+All routers are connected to the same hub on the 192.168.1.0/24 network.
+
+Configuration
+1. Enable Static Neighbors on R1
+Enter global configuration mode:
+
+enable
+configure terminal
+Configure the FastEthernet0/0 interface:
+
+interface FastEthernet0/0
+ip address 192.168.1.1 255.255.255.0
+no shutdown
+Enable EIGRP and configure static neighbors:
+
+router eigrp 100
+network 192.168.1.0 0.0.0.255
+neighbor 192.168.1.2 FastEthernet0/0
+neighbor 192.168.1.3 FastEthernet0/0
+no auto-summary
+2. Enable Static Neighbors on R2
+Enter global configuration mode:
+
+enable
+configure terminal
+Configure the FastEthernet0/0 interface:
+
+interface FastEthernet0/0
+ip address 192.168.1.2 255.255.255.0
+no shutdown
+Enable EIGRP and configure static neighbors:
+
+router eigrp 100
+network 192.168.1.0 0.0.0.255
+neighbor 192.168.1.1 FastEthernet0/0
+neighbor 192.168.1.3 FastEthernet0/0
+no auto-summary
+3. Enable Static Neighbors on R3
+Enter global configuration mode:
+
+enable
+configure terminal
+Configure the FastEthernet0/0 interface:
+
+interface FastEthernet0/0
+ip address 192.168.1.3 255.255.255.0
+no shutdown
+Enable EIGRP and configure static neighbors:
+
+router eigrp 100
+network 192.168.1.0 0.0.0.255
+neighbor 192.168.1.1 FastEthernet0/0
+neighbor 192.168.1.2 FastEthernet0/0
+no auto-summary
+Verification
+Verify Neighbors On each router, use:
+
+show ip eigrp neighbors
+You should see the other two routers listed as neighbors.
+
+Verify Routes On each router, check the routing table:
+
+show ip route
+You should see routes to the other routers' networks.
+
+Ping Test From each router, ping the other routers' IPs:
+
+ping 192.168.1.2
+ping 192.168.1.3
+Key Notes
+Static Neighbors Disable Multicast:
+
+When you configure static neighbors, EIGRP stops using multicast to discover neighbors on the specified interface.
+Multicast and Static Together:
+
+If other neighbors use multicast, you can still allow multicast neighbors on the same interface. Static neighbors are configured only for specific IPs.
+Matching AS Number:
+
+The EIGRP Autonomous System (AS) number must match on all routers (e.g., 100 in this case).
+Subnet Consistency:
+
+Ensure all routers belong to the same subnet (192.168.1.0/24).
+
+
+------------------------------------
+Hello and Hold timers in EIGRP -x
+------------------------------------
+-EIGRP has two timers which play major role in Neighborship formation. These are Hello and Hold Timers
+-Hello and Hold timers are used to determine the status of EIGRP neighbors.
+-If Bandwidth of the Link is greater than or equal to 1544 Kbps then Hello and Hold Timers will be 5 and 15 seconds respectively.
+-For links having Bandwidth below 1544 Kbps, Hello & Hold timers will be 60 and 180 seconds respectively.
+ It is because you don’t want to send excessive protocol traffic over low capacity links
+
+1.Hello Timer:
+Determines how often EIGRP sends "hello" packets to its neighbors.
+Default value:
+5 seconds on high-speed interfaces (e.g., Ethernet).
+60 seconds on slower interfaces (e.g., Serial).
+
+2.Hold Timer:
+Defines how long a router waits without receiving a hello packet before declaring a neighbor as "down."
+Default value: 3 times the hello interval (15 seconds for fast interfaces, 180 seconds for slow interfaces).
+
+Configuration Hello and Hold Timers
+
+You can configure the Hello and Hold timers per interface. These timers must be consistent between neighbors to avoid connectivity issues.
+Command Syntax
+interface <interface-id>
+ ip hello-interval eigrp <as-number> <seconds>
+ ip hold-time eigrp <as-number> <seconds>
+
+You can also check "Show run interface x/x"to see what timers we configured on Interface.
+
+Notes:
+-If you want to see packets exchange then use the command “debug eigrp packets”.
+debug eigrp packets hello
+
+-Also remember that EIGRP uses “DUAL” algorithm. It stands for Diffusing Updating Algorithm.
+
+
+------------------------------------
+EIGRP Metric Calculation -x
+------------------------------------
+-EIGRP (Enhanced Interior Gateway Routing Protocol) uses a composite metric to determine the best path to a destination. 
+-The metric is calculated using the following components:
+Bandwidth --> is the lowest in the path.
+Delay
+(Optionally) Load and Reliability, though these are not used by default.
+
+Definitions:
+Least Bandwidth: The minimum bandwidth of the links in the path, measured in Kbps (Kilobits per second).
+Cumulative Delay: The sum of the delays of the links in the path, measured in tens of microseconds.
+
+the metric is:
+metric = 256 * ((10^7 / least bandwidth) + cumulative delay)
+
+Where:
+- least bandwidth is the minimum bandwidth of the links in the path (in Kbps)
+- cumulative delay is the sum of the delays of the links in the path (in tens of microseconds)
+
+Note: Load and Reliability are not used by default in the metric calculation.
+
+EIGRP Metric Calculation 
+Bandwidth = 10^7 / least bandwidth
+Delay = cumulative delay / 10
+
+Example of Metric Calculation
+
+Consider a path with the following characteristics:
+- Link 1: Bandwidth = 1000 Kbps, Delay = 1000 microseconds
+- Link 2: Bandwidth = 2000 Kbps, Delay = 2000 microseconds
+
+Step 1: Determine the least bandwidth
+Least bandwidth = min(1000, 2000) = 1000 Kbps
+
+Step 2: Calculate the cumulative delay
+Cumulative delay = 1000 + 2000 = 3000 microseconds
+
+Step 3: Apply the EIGRP metric formula
+Bandwidth metric = 10^7 / least bandwidth = 10^7 / 1000 = 10000
+Delay metric = cumulative delay / 10 = 3000 / 10 = 300
+
+Metric = 256 * (Bandwidth metric + Delay metric)
+Metric = 256 * (10000 + 300)
+Metric = 256 * 10300
+Metric = 2636800
+
+Therefore, the EIGRP metric for this path is 2636800.
+
+################################
+Configuring Metrics in EIGRP
+################################
+1.Change Interface Bandwidth:
+
+Use the bandwidth command to adjust the interface bandwidth for EIGRP calculations.
+interface FastEthernet0/0
+bandwidth 64
+
+2.Change Interface Delay:
+
+Use the delay command to adjust the interface delay.
+interface FastEthernet0/0
+delay 10
+
+3.Modify K-Values:
+Adjust K-values for custom metric behavior:
+
+router eigrp 100
+metric weights 1 0 1 0 0
+
+Default values are:
+metric weights 1 0 1 0 0
+
+The K-values are:
+K1 = Bandwidth
+K2 = Load
+K3 = Delay
+K4 = Reliability
+K5 = MTU
+
+-You can check existing K Values using the command “Show IP Protocols”
+
+4.Verification
+Show EIGRP Metrics:
+show ip eigrp topology
+
+-This displays the feasible distance (FD), reported distance (RD), and route metrics.
+
+View Interface Metrics:
+show ip eigrp interfaces detail
+
+
+------------------------------------------
+EIGRP Automatic Load Sharing -x
+------------------------------------------
+-EIGRP (Enhanced Interior Gateway Routing Protocol) supports automatic load sharing by default when multiple paths to the same destination exist.
+ It can perform equal-cost load balancing and unequal-cost load balancing to optimize traffic flow across the network.
+
+1. Equal-Cost Load Balancing
+EIGRP performs equal-cost load balancing by default if there are multiple paths with the same metric to a destination.
+##################
+How It Works
+##################
+-When EIGRP finds multiple routes to a destination with the same feasible distance (FD) (i.e., cost), it automatically installs all the paths into the routing table.
+-Traffic is distributed equally among these paths.
+##################
+Configuration
+##################
+No additional configuration is required for equal-cost load balancing. EIGRP enables it automatically when such routes exist.
+##################
+Verification
+##################
+Use the show ip route command to check load balancing.
+Router# show ip route
+Output Example:
+D    192.168.1.0/24 [90/256768] via 10.1.1.1, 0:00:10, FastEthernet0/0
+                           [90/256768] via 10.1.2.1, 0:00:10, FastEthernet0/1
+Two equal-cost paths (FastEthernet0/0 and FastEthernet0/1) are being used.
+
+2. Unequal-Cost Load Balancing
+EIGRP also supports unequal-cost load balancing using the variance command.
+##################
+How It Works
+##################
+-EIGRP can install routes with different metrics into the routing table if they meet the feasibility condition and are within the configured variance.
+Feasibility Condition: The reported distance (RD) of a route must be less than the feasible distance (FD) of the best route.
+
+##################
+Configuration
+##################
+Configure EIGRP as usual:
+router eigrp 100
+network 192.168.1.0
+
+Add the variance command to enable unequal-cost load balancing:
+router eigrp 100
+variance 2
+
+This allows routes with metrics up to 2 times the FD of the best route to be included in the routing table.
+##################
+Example
+##################
+Best Route Metric: 1000
+Variance: 2
+Any route with a metric ≤ 1000 × 2 = 2000 ≤1000×2=2000 will be included in the routing table.
+##################
+Verification
+##################
+Use the show ip route command to confirm:
+
+Router# show ip route
+Output Example:
+D    192.168.1.0/24 [90/1000] via 10.1.1.1, 0:00:10, FastEthernet0/0
+                           [90/1800] via 10.1.2.1, 0:00:10, FastEthernet0/1
+
+-Two paths with different metrics are being used.
+
+3. Traffic Sharing Behavior
+-Equal-Cost Paths: Traffic is distributed equally across all available paths.
+-Unequal-Cost Paths: Traffic is distributed proportionally to the metric of each path. Paths with lower metrics will handle more traffic.
+
+Note:
+-“Show ip route eigrp” command will tell you the best eigrp routes and if there are two next hops getting visible for any destination network- then it would mean load sharing is happening.
+-When comparison between Networks is to be made, then router checks things in order of ---first thing will be Length of the Network i.e. Subnet Mask, second thing will be AD (Administrative Distance), Third is Metric i.e. Cost.
+-So, if all above parameters are same then Traffic Load will be shared. That’s why in Lab, you are seeing destination networks having multiple Next-hop addresses
+-If you want to change the metric of the routes then you can make changes either in Bandwidth or in Delay.
+
+-It means that if there are multiple paths with different cost or metric then you can still do load sharing in EIGRP. There is a way to do it.
+-We need to use “Variance x” whereas “x” is a multiplier. By default, multiplier is 1.
+-By default, four paths can be included in Load Sharing (equal and unequal).
+-You must know that, Route should pass the feasible condition to be able to become part of unequal load-sharing.
+-Reported distance is basically the cost from neighbor to the destination network.
+-Feasible condition says that EIGRP will have Backup route i.e. Feasible Successor only when the Reported Distance is less than or equal to the Feasible distance of Best route.
+-Advertised Distance is also known as Reported distance.
+-Successor means Best Route, Feasible Successor means Backup route
+-Routes which do not meet Feasible condition can’t be seen with the command “show ip eigrp topology”.
+-To be able to see all routes, then use the command “show ip eigrp topology all-links” – It will show routes which even fail feasible condition
+-You can traceroute to see the impact of load sharing. You will notice packets getting load-shared between different hops.
+
+
+------------------------------------------
+EIGRP Authentication -x
+------------------------------------------
+-Authentication in EIGRP (Enhanced Interior Gateway Routing Protocol) ensures that only trusted routers can exchange routing information. 
+ This prevents unauthorized or rogue devices from participating in the EIGRP domain
+
+-EIGRP supports Message Digest 5 (MD5) and HMAC-SHA authentication for securing routing updates
+
+############################################
+Steps to Configure Authentication in EIGRP
+############################################
+1. Create a Key Chain
+The key chain is used to store authentication keys that EIGRP uses to authenticate routing updates.
+Router(config)# key chain <key-chain-name>
+Router(config-keychain)# key <key-id>
+Router(config-keychain-key)# key-string <authentication-key>
+Router(config-keychain-key)# exit
+
+Key Chain Name: A logical name for the group of keys.
+Key ID: A numeric identifier for the key (e.g., 1).
+Key String: The password or shared secret used for authentication.
+
+Example:
+Router(config)# key chain EIGRP_AUTH
+Router(config-keychain)# key 1
+Router(config-keychain-key)# key-string mysecurekey
+Router(config-keychain-key)# exit
+
+2. Apply Authentication to an Interface
+Bind the key chain to the interface where EIGRP is running.
+Router(config)# interface <interface-name>
+Router(config-if)# ip authentication mode eigrp <asn> md5
+Router(config-if)# ip authentication key-chain eigrp <asn> <key-chain-name>
+
+ASN: The Autonomous System Number used by EIGRP.
+Key Chain Name: The name of the key chain created in Step 1.
+
+Example:
+Router(config)# interface FastEthernet0/0
+Router(config-if)# ip authentication mode eigrp 100 md5
+Router(config-if)# ip authentication key-chain eigrp 100 EIGRP_AUTH
+
+3. Optional: Configuring Key Lifetimes
+You can configure the lifetime for a specific key to enable timed key rotation.
+Router(config)# key chain <key-chain-name>
+Router(config-keychain)# key <key-id>
+Router(config-keychain-key)# accept-lifetime <start-time> <end-time>
+Router(config-keychain-key)# send-lifetime <start-time> <end-time>
+
+Accept-Lifetime: Time range during which the key is accepted.
+Send-Lifetime: Time range during which the key is used to send updates.
+
+Example:
+Router(config)# key chain EIGRP_AUTH
+Router(config-keychain)# key 1
+Router(config-keychain-key)# key-string mysecurekey
+Router(config-keychain-key)# accept-lifetime 00:00:00 Jan 1 2024 23:59:59 Dec 31 2024
+Router(config-keychain-key)# send-lifetime 00:00:00 Jan 1 2024 23:59:59 Dec 31 2024
+
+4. Verifying EIGRP Authentication
+Use the following commands to verify that authentication is working:
+
+Show Key Chain Configuration:
+Router# show key chain
+
+Show EIGRP Neighbors:
+Router# show ip eigrp neighbors
+If authentication is successful, neighbors will be listed.
+
+Debug EIGRP Packets:
+Router# debug eigrp packets
+Check for authentication-related issues.
+
+Check Interface Authentication:
+Router# show ip interface <interface-name>
+Verify the authentication configuration on the interface
+
+Note:
+-If you do not want cleartext password then use the privilege 7 while creating key strings
+-You can run debug eigrp packets to see packets being exchanged in eigrp. If only one end is configured then you will see the error logs in debug with name “missing authentication”
+
+
+
+------------------------------------------
+Auto-Summary Behavior in EIGRP 
+------------------------------------------
+-auto-summary is a feature that automatically summarizes routes at classful network boundaries. 
+This feature simplifies routing tables but can cause issues in certain scenarios, especially in networks using discontiguous subnets.
+#########################
+How Auto-Summary Works
+#########################
+-EIGRP advertises summarized routes at classful boundaries.
+For example, if you have subnets of 192.168.1.0/24 and 192.168.2.0/24 on different interfaces of a router, EIGRP advertises the classful network 192.168.0.0/16 to neighbors.
+
+Example of Auto-Summary Behavior
+Network Scenario:
+Router 1 (R1):
+Network 192.168.1.0/24
+Router 2 (R2):
+Network 192.168.2.0/24
+These networks belong to the same classful boundary (192.168.0.0/16).
+If auto-summary is enabled, both R1 and R2 summarize their routes to 192.168.0.0/16, leading to ambiguity and potential routing loops.
+
+#########################
+Disabling Auto-Summary
+#########################
+Example:
+On R1:
+Router(config)# router eigrp 100
+Router(config-router)# network 192.168.1.0 0.0.0.255
+Router(config-router)# no auto-summary
+
+On R2:
+Router(config)# router eigrp 100
+Router(config-router)# network 192.168.2.0 0.0.0.255
+Router(config-router)# no auto-summary
+
+#########################
+Verifying Auto-Summary
+#########################
+Check Routing Table:
+
+Router# show ip route
+With auto-summary enabled, you may see summarized routes like:
+D    192.168.0.0/16 [90/2172416] via 10.1.1.2, 00:00:10, FastEthernet0/0
+
+After disabling auto-summary, you will see specific subnets:
+D    192.168.1.0/24 [90/156160] via 10.1.1.2, 00:00:10, FastEthernet0/0
+D    192.168.2.0/24 [90/156160] via 10.1.1.3, 00:00:10, FastEthernet0/1
+
+Check EIGRP Topology:
+Router# show ip eigrp topology
+
+Verify EIGRP Auto-Summary Setting:
+Router# show running-config | include auto-summary
+
+
+------------------------------------------
+Manual Route Summarization in EIGRP
+------------------------------------------
+-Manual summarization in EIGRP allows you to summarize a group of networks into a single route to reduce the size of routing tables.
+ Unlike auto-summary, manual summarization provides precise control over which routes to summarize and where the summarization occurs.
+
+
+###########################################
+How Manual Summarization Works
+###########################################
+Summarization is configured on a per-interface basis in EIGRP.
+Summarized routes are advertised out of the specified interface.
+Manual summarization applies to both internal and external EIGRP routes.
+
+###########################################
+Benefits of Manual Summarization
+###########################################
+Reduces Routing Table Size: Combines multiple specific routes into one summarized route.
+Improves Convergence Time: Summarized routes reduce the number of routes EIGRP has to process.
+Prevents Route Flapping: Route instability in one specific subnet does not affect other subnets when summarized.
+
+
+###########################################
+Configuration of Manual Summarization
+###########################################
+Steps:
+Enter Interface Configuration Mode:
+Router(config)# interface <interface-name>
+
+Apply the Summary Route:
+Router(config-if)# ip summary-address eigrp <asn> <summary-address> <subnet-mask>
+ASN: The EIGRP Autonomous System Number.
+Summary Address: The summarized IP address.
+Subnet Mask: The mask that defines the summary range.
+
+Example:
+Scenario:
+Router is advertising the networks:
+192.168.1.0/24
+192.168.2.0/24
+192.168.3.0/24
+Summarize these networks into a single route: 192.168.0.0/22.
+
+Configuration:
+Router(config)# interface FastEthernet0/0
+Router(config-if)# ip summary-address eigrp 100 192.168.0.0 255.255.252.0
+
+
+###########################################
+Verifying Manual Summarization
+###########################################
+Check the Routing Table:
+
+Router# show ip route
+
+You should see the summarized route:
+D    192.168.0.0/22 [90/156160] via 10.1.1.2, 00:00:10, FastEthernet0/0
+
+Check EIGRP Topology:
+Router# show ip eigrp topology
+
+Check Interface Configuration:
+Router# show running-config interface <interface-name>
+
+Verify that the summary address is applied to the correct interface.
+Debugging: Use debugging commands to monitor EIGRP advertisements:
+Router# debug eigrp packets
