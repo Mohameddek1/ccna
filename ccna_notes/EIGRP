@@ -537,7 +537,7 @@ Router# show running-config | include auto-summary
 
 
 ------------------------------------------
-Manual Route Summarization in EIGRP
+Manual Route Summarization in EIGRP -x
 ------------------------------------------
 -Manual summarization in EIGRP allows you to summarize a group of networks into a single route to reduce the size of routing tables.
  Unlike auto-summary, manual summarization provides precise control over which routes to summarize and where the summarization occurs.
@@ -603,3 +603,393 @@ Router# show running-config interface <interface-name>
 Verify that the summary address is applied to the correct interface.
 Debugging: Use debugging commands to monitor EIGRP advertisements:
 Router# debug eigrp packets
+
+
+--------------------------------------------------------------------------
+Maximum Paths in EIGRP
+--------------------------------------------------------------------------
+-EIGRP (Enhanced Interior Gateway Routing Protocol) supports load balancing over multiple paths, which can be configured for equal-cost or unequal-cost routes. By default, EIGRP allows up to 4 paths for load balancing, but this can be increased or decreased as needed.
+
+###############################
+Key Concepts
+###############################
+1.Equal-Cost Load Balancing:
+By default, EIGRP performs equal-cost load balancing if multiple paths to a destination have the same metric.
+
+2.Unequal-Cost Load Balancing:
+EIGRP supports variance-based load balancing, which allows traffic to be distributed over paths with different metrics, provided they meet the variance multiplier criteria.
+
+3.Maximum Paths:
+The maximum-paths command controls the number of routes EIGRP can install in the routing table for load balancing.
+The maximum number of paths supported is 16.
+
+###################################
+Configuring Maximum Paths
+###################################
+-By default, EIGRP allows 4 equal-cost paths.
+-Changing Maximum Paths:
+i.Enter EIGRP configuration mode.
+ii.Use the maximum-paths command to set the desired number of paths.
+
+Command:
+Router(config)# router eigrp <asn>
+Router(config-router)# maximum-paths <number>
+
+<asn>: Autonomous System Number of the EIGRP process.
+<number>: Number of paths (1 to 16).
+
+-----------------------------------------------------
+Redistribution Between Different EIGRP AS Numbers
+-----------------------------------------------------
+
+Redistribution allows routes from one EIGRP Autonomous System (AS) to be advertised into another EIGRP AS. This is useful in scenarios where different parts of the network run separate EIGRP processes.
+
+### Steps to Configure Redistribution
+
+1. **Enter EIGRP Configuration Mode for the Target AS:**
+    ```
+    Router(config)# router eigrp <target-asn>
+    ```
+
+2. **Redistribute Routes from the Source AS:**
+    ```
+    Router(config-router)# redistribute eigrp <source-asn> metric <bandwidth> <delay> <reliability> <load> <mtu>
+    ```
+
+    - `<target-asn>`: The AS number of the EIGRP process receiving the routes.
+    - `<source-asn>`: The AS number of the EIGRP process from which routes are being redistributed.
+    - `<bandwidth>`, `<delay>`, `<reliability>`, `<load>`, `<mtu>`: Metrics for the redistributed routes.
+
+### Example Configuration
+
+Assume we have two EIGRP processes with AS numbers 100 and 200. We want to redistribute routes from AS 100 into AS 200.
+
+1. **Configure Redistribution in AS 200:**
+    ```
+    Router(config)# router eigrp 200
+    Router(config-router)# redistribute eigrp 100 metric 10000 100 255 1 1500
+    ```
+
+### Verification
+
+1. **Check the Routing Table:**
+    ```
+    Router# show ip route
+    ```
+
+2. **Verify EIGRP Topology:**
+    ```
+    Router# show ip eigrp topology
+    ```
+
+3. **Check Redistribution Configuration:**
+    ```
+    Router# show running-config | include redistribute
+    ```
+
+### Notes
+
+- Ensure that the metrics used in the `redistribute` command are appropriate for your network.
+- Redistribution can introduce routing loops if not configured carefully. Use route maps and distribute lists to control which routes are redistributed.
+- Verify connectivity and routing stability after configuring redistribution.
+
+
+
+-------------------------------------------------
+### Redistribution Between EIGRP and OSPF -x
+-------------------------------------------------
+
+Redistribution allows routes from EIGRP to be advertised into OSPF and vice versa. This is useful in scenarios where different parts of the network run separate routing protocols.
+
+#### Steps to Configure Redistribution
+
+1. **Enter OSPF Configuration Mode:**
+    ```
+    Router(config)# router ospf <ospf-process-id>
+    ```
+
+2. **Redistribute EIGRP Routes into OSPF:**
+    ```
+    Router(config-router)# redistribute eigrp <eigrp-asn metric <cost> subnets
+    ```
+
+    - `<ospf-process-id>`: The process ID of the OSPF instance.
+    - `<eigrp-asn>`: The Autonomous System Number of the EIGRP process.
+
+3. **Enter EIGRP Configuration Mode:**
+    ```
+    Router(config)# router eigrp <eigrp-asn>
+    ```
+
+4. **Redistribute OSPF Routes into EIGRP:**
+    ```
+    Router(config-router)# redistribute ospf <ospf-process-id> metric <bandwidth> <delay> <reliability> <load> <mtu>
+    ```
+
+    - `<eigrp-asn>`: The AS number of the EIGRP process.
+    - `<ospf-process-id>`: The process ID of the OSPF instance.
+    - `<bandwidth>`, `<delay>`, `<reliability>`, `<load>`, `<mtu>`: Metrics for the redistributed routes.
+
+#### Example Configuration
+
+Assume we have an OSPF process with ID 1 and an EIGRP process with AS number 100. We want to redistribute routes between them.
+
+1. **Configure Redistribution in OSPF:**
+    ```
+    Router(config)# router ospf 1
+    Router(config-router)# redistribute eigrp 100 subnets
+    ```
+
+2. **Configure Redistribution in EIGRP:**
+    ```
+    Router(config)# router eigrp 100
+    Router(config-router)# redistribute ospf 1 metric 10000 100 255 1 1500
+    ```
+
+#### Verification
+
+1. **Check the Routing Table:**
+    ```
+    Router# show ip route
+    ```
+
+2. **Verify OSPF and EIGRP Topology:**
+    ```
+    Router# show ip ospf database
+    Router# show ip eigrp topology
+    ```
+
+3. **Check Redistribution Configuration:**
+    ```
+    Router# show running-config | include redistribute
+    ```
+
+#### Notes
+
+- Ensure that the metrics used in the `redistribute` command are appropriate for your network.
+- Redistribution can introduce routing loops if not configured carefully. Use route maps and distribute lists to control which routes are redistributed.
+- Verify connectivity and routing stability after configuring redistribution.
+
+
+
+
+------------------------------------------
+### Passive Interfaces in EIGRP
+------------------------------------------
+-Passive interfaces in EIGRP prevent the router from sending EIGRP hello packets on the specified interface. This is useful for interfaces where you do not want to form EIGRP neighbor relationships, such as interfaces connected to end devices or networks where EIGRP is not needed.
+
+### Benefits of Passive Interfaces
+- Reduces unnecessary EIGRP traffic.
+- Enhances security by preventing EIGRP neighbor formation on certain interfaces.
+- Useful for interfaces connected to end devices or non-EIGRP networks.
+
+### Configuration of Passive Interfaces
+1. **Enter EIGRP Configuration Mode:**
+    ```
+    Router(config)# router eigrp <asn>
+    ```
+
+2. **Configure Passive Interface:**
+    ```
+    Router(config-router)# passive-interface <interface-name>
+    ```
+
+3. **Make All Interfaces Passive by Default:**
+    ```
+    Router(config-router)# passive-interface default
+    ```
+
+4. **Exclude Specific Interfaces from Being Passive:**
+    ```
+    Router(config-router)# no passive-interface <interface-name>
+    ```
+
+### Example Configuration
+Assume we have a router with interfaces FastEthernet0/0 and FastEthernet0/1. We want to make FastEthernet0/0 passive.
+
+1. **Configure EIGRP and Set Passive Interface:**
+    ```
+    Router(config)# router eigrp 100
+    Router(config-router)# passive-interface FastEthernet0/0
+    ```
+
+2. **Make All Interfaces Passive by Default and Exclude FastEthernet0/1:**
+    ```
+    Router(config)# router eigrp 100
+    Router(config-router)# passive-interface default
+    Router(config-router)# no passive-interface FastEthernet0/1
+    ```
+
+### Verification
+1. **Check Passive Interface Configuration:**
+    ```
+    Router# show ip protocols
+    ```
+
+2. **Verify EIGRP Neighbors:**
+    ```
+    Router# show ip eigrp neighbors
+    ```
+
+### Notes
+- Passive interfaces still advertise the connected network, but do not form EIGRP neighbor relationships.
+- Use the `show ip protocols` command to verify which interfaces are passive.
+- Passive interfaces are useful for securing EIGRP and reducing unnecessary traffic.
+
+
+------------------------------------------
+### Distribute List in EIGRP -x
+------------------------------------------
+-Distribute lists in EIGRP are used to control the routing updates that are sent or received by a router. They allow you to filter routes based on access lists, prefix lists, or route maps, providing fine-grained control over the routing information exchanged with neighbors.
+
+### Benefits of Distribute Lists
+- Control which routes are advertised to or received from EIGRP neighbors.
+- Enhance security by preventing the advertisement of specific routes.
+- Optimize routing by filtering unnecessary routes.
+
+### Types of Distribute Lists
+1. **Inbound Distribute List:**
+    - Filters routes received from EIGRP neighbors.
+    - Applied to incoming routing updates.
+
+2. **Outbound Distribute List:**
+    - Filters routes advertised to EIGRP neighbors.
+    - Applied to outgoing routing updates.
+
+### Configuration of Distribute Lists
+1. **Create an Access List or Prefix List:**
+    - Access List Example:
+      ```
+      Router(config)# access-list 10 permit 192.168.1.0 0.0.0.255
+      ```
+    - Prefix List Example:
+      ```
+      Router(config)# ip prefix-list FILTER seq 5 permit 192.168.1.0/24
+      ```
+
+2. **Apply the Distribute List to EIGRP:**
+    - Inbound Distribute List:
+      ```
+      Router(config)# router eigrp <asn>
+      Router(config-router)# distribute-list <access-list/prefix-list> in <interface-name>
+      ```
+    - Outbound Distribute List:
+      ```
+      Router(config)# router eigrp <asn>
+      Router(config-router)# distribute-list <access-list/prefix-list> out <interface-name>
+      ```
+
+### Example Configuration
+Assume we want to filter routes from the 192.168.1.0/24 network.
+
+1. **Create an Access List:**
+    ```
+    Router(config)# access-list 10 permit 192.168.1.0 0.0.0.255
+    ```
+
+2. **Apply the Inbound Distribute List:**
+    ```
+    Router(config)# router eigrp 100
+    Router(config-router)# distribute-list 10 in FastEthernet0/0
+    ```
+
+3. **Apply the Outbound Distribute List:**
+    ```
+    Router(config)# router eigrp 100
+    Router(config-router)# distribute-list 10 out FastEthernet0/0
+    ```
+
+### Verification
+1. **Check Distribute List Configuration:**
+    ```
+    Router# show running-config | include distribute-list
+    ```
+
+2. **Verify EIGRP Routes:**
+    ```
+    Router# show ip route eigrp
+    ```
+
+3. **Check EIGRP Neighbors:**
+    ```
+    Router# show ip eigrp neighbors
+    ```
+
+### Notes
+- Distribute lists can be based on access lists, prefix lists, or route maps.
+- Use distribute lists carefully to avoid unintentional route filtering.
+- Verify the routing table and EIGRP topology after applying distribute lists to ensure correct routing behavior.
+
+
+
+------------------------------------------------------
+### Offset List in EIGRP -x
+------------------------------------------------------
+- An offset list in EIGRP is used to add a specified metric to routes learned or advertised through EIGRP. This can influence route selection by increasing the metric of certain routes, making them less preferred.
+
+#### Benefits of Offset Lists
+- Control route selection by manipulating metrics.
+- Influence path selection without changing the actual bandwidth or delay of interfaces.
+- Useful for traffic engineering and policy-based routing.
+
+#### Configuration of Offset Lists
+1. **Enter EIGRP Configuration Mode:**
+    ``` 
+    Router(config)# router eigrp <asn>
+    ```
+
+2. **Configure the Offset List:**
+    - Apply to incoming routes:
+      ``` 
+      Router(config-router)# offset-list <access-list> in <metric> <interface-name>
+      ```
+    - Apply to outgoing routes:
+      ``` 
+      Router(config-router)# offset-list <access-list> out <metric> <interface-name>
+      ```
+
+    - `<asn>`: The Autonomous System Number of the EIGRP process.
+    - `<access-list>`: The access list that matches the routes to be offset.
+    - `<metric>`: The value to be added to the metric.
+    - `<interface-name>`: The interface to which the offset list is applied.
+
+#### Example Configuration
+Assume we want to add a metric of 10 to routes from the 192.168.1.0/24 network.
+
+1. **Create an Access List:**
+    ``` 
+    Router(config)# access-list 10 permit 192.168.1.0 0.0.0.255
+    ```
+
+2. **Apply the Offset List to Incoming Routes:**
+    ``` 
+    Router(config)# router eigrp 100
+    Router(config-router)# offset-list 10 in 10 FastEthernet0/0
+    ```
+
+3. **Apply the Offset List to Outgoing Routes:**
+    ``` 
+    Router(config)# router eigrp 100
+    Router(config-router)# offset-list 10 out 10 FastEthernet0/0
+    ```
+
+#### Verification
+1. **Check Offset List Configuration:**
+    ``` 
+    Router# show running-config | include offset-list
+    ```
+
+2. **Verify EIGRP Routes:**
+    ``` 
+    Router# show ip route eigrp
+    ```
+
+3. **Check EIGRP Topology:**
+    ``` 
+    Router# show ip eigrp topology
+    ```
+
+### Notes
+- Offset lists can be used to manipulate the metric of specific routes, influencing EIGRP's route selection process.
+- Ensure that the access list accurately matches the routes you intend to offset.
+- Verify the routing table and EIGRP topology after applying offset lists to ensure correct routing behavior.
