@@ -410,3 +410,206 @@ Area vs Interface Authentication:
 -
 Area-wide authentication affects all interfaces in the area unless overridden at the interface level.
 -Interface-level authentication allows more granular control.
+
+
+----------------------------------------
+### DR BDR in shared network  -x
+----------------------------------------
+- In OSPF, on multi-access networks like Ethernet, the DR (Designated Router) and BDR (Backup Designated Router) are elected to reduce the number of adjacencies and optimize network traffic.
+-the DR Acts as the central point for exchanging OSPF routing information on a shared network, while the BDR takes over if the DR fails.
+- DROthers only form two-way adjacencies with the DR and BDR, reducing the number of adjacencies on the shared segment.
+
+#################################
+DR/BDR Election Process
+#################################
+1. Router Priority:
+The router with the highest OSPF priority becomes the DR. Default priority is 1.
+
+2. Router ID:
+If priorities are equal, the router with the highest Router ID becomes the DR.
+
+3. BDR Election:
+The second-highest priority router becomes the BDR.
+
+4. DR/BDR Removal:
+If the DR fails, the BDR takes over as the DR, and a new BDR is elected.
+
+Example:
+On a shared network, R1 has a higher priority than R2 and R3:
+R1(config)# interface GigabitEthernet0/0
+R1(config-if)# ip ospf priority 10
+
+R2(config)# interface GigabitEthernet0/0
+R2(config-if)# ip ospf priority 5
+
+R3(config)# interface GigabitEthernet0/0
+R3(config-if)# ip ospf priority 1
+
+Verification:
+Check the DR and BDR status on the shared network interface:
+
+Router# show ip ospf interface <interface>
+
+Notes:
+- The DR/BDR election process occurs when OSPF is enabled on a multi-access network.
+- The DR and BDR help reduce OSPF adjacencies and flooding on shared segments.
+
+#################################
+Behavior in Shared Networks
+#################################
+- DR/BDR Form Full Adjacencies:
+  - The DR and BDR establish full adjacencies with all OSPF routers on the shared segment.
+
+- DROthers Form Two-Way Adjacencies:
+  - OSPF routers that are not the DR or BDR only form two-way adjacencies with the DR and BDR.
+
+- LSA Flow:
+  - DROthers send LSAs to the DR.
+  - The DR floods the LSAs to all OSPF routers on the shared segment.
+
+- DR/BDR Failover:
+  - If the DR fails, the BDR takes over as the DR, and a new BDR is elected.
+  - The DR/BDR election process is triggered when the DR fails or leaves the network.
+
+- DR/BDR Priority:
+  - The OSPF priority can be adjusted to influence the DR/BDR election process.
+  - The default priority is 1, and the highest priority router becomes the DR.
+
+
+---------------------------------------
+How to Check Multicast IP of OSPF
+---------------------------------------
+- OSPF uses multicast IP addresses for exchanging routing information.
+- The most common multicast IP address used by OSPF is 224.0.0.5 for OSPF routers and 224.0.0.6 for OSPF DR/BDR.
+- 224.0.0.6 is used when sending OSPF routing information to the Designated Router (DR) and Backup Designated Router (BDR) on a multi-access network.
+- 224.0.0.5 is used for OSPF routers to communicate with each other.
+
+#################################
+Checking OSPF Multicast IP
+#################################
+1. Verify OSPF Multicast IP Address:
+To check the OSPF multicast IP address used for routing updates, use the following command:
+
+Router# show ip ospf interface <interface>
+
+Example:
+To check the OSPF multicast IP address on interface GigabitEthernet0/0:
+
+Router# show ip ospf interface GigabitEthernet0/0
+
+Output:
+Interface GigabitEthernet0/0:
+  IP address
+
+
+---------------------------------------
+### Metric Calculation in OSPF -x
+---------------------------------------
+- OSPF uses a cost metric to determine the best path to a destination.
+- The cost is calculated based on the bandwidth of the link.
+
+#################################
+OSPF Cost Calculation
+#################################
+1. Default Cost Calculation:
+   - The default formula for OSPF cost is:
+     Cost = 100 / Bandwidth (in Mbps)
+   - Example: For a 100 Mbps link, the cost is 1 (100 / 100).
+
+2. Custom Cost Configuration:
+   - The cost can be manually configured on an interface to influence OSPF path selection.
+   - Use the following command to set the OSPF cost on an interface:
+
+Example:
+On Router 1 (R1), set the OSPF cost to 10 on interface GigabitEthernet0/0:
+
+Router1(config)# interface GigabitEthernet0/0
+Router1(config-if)# ip ospf cost 10
+
+Verification:
+Check the OSPF cost on an interface:
+
+Router# show ip ospf interface <interface>
+
+Notes:
+- Lower cost values are preferred for OSPF path selection.
+- Manually configuring the cost can be useful for traffic engineering and optimizing network performance.
+
+
+-----------------------------------------
+### AutoCost Reference Bandwidth in OSPF -x
+-----------------------------------------
+- OSPF uses a reference bandwidth to calculate the cost of an interface.
+- The default reference bandwidth is 100 Mbps, which may not be suitable for modern high-speed networks.
+
+#################################
+Configuring AutoCost Reference Bandwidth
+#################################
+1. Default Reference Bandwidth:
+   - The default reference bandwidth is 100 Mbps.
+   - This can lead to suboptimal routing decisions in networks with high-speed links (e.g., Gigabit Ethernet, 10 Gigabit Ethernet).
+
+2. Custom Reference Bandwidth:
+   - The reference bandwidth can be adjusted to better reflect the actual speeds of modern networks.
+   - Use the following command to set the reference bandwidth in Mbps:
+
+Example:
+On Router 1 (R1), set the reference bandwidth to 10000 Mbps (10 Gbps):
+
+Router1(config)# router ospf 1
+Router1(config-router)# auto-cost reference-bandwidth 10000
+
+Verification:
+Check the OSPF reference bandwidth setting:
+
+Router# show ip ospf
+
+Notes:
+- The reference bandwidth must be consistent across all OSPF routers in the network to ensure accurate cost calculations.
+- Adjusting the reference bandwidth helps optimize OSPF path selection in high-speed networks.
+
+
+---------------------------------------
+### Passive Interface in OSPF -x
+---------------------------------------
+- The passive interface feature in OSPF is used to prevent OSPF from sending Hello packets on an interface.
+- This is useful for interfaces connected to end devices or networks where OSPF adjacency is not required.
+
+#################################
+Configuring Passive Interface
+#################################
+1. Global Passive Interface:
+   - To make all interfaces passive by default, use the following command:
+
+Example:
+On Router 1 (R1), configure all interfaces as passive by default:
+
+Router1(config)# router ospf 1
+Router1(config-router)# passive-interface default
+
+2. Per-Interface Passive Configuration:
+   - To configure a specific interface as passive, use the following command:
+
+Example:
+On Router 1 (R1), configure GigabitEthernet0/1 as a passive interface:
+
+Router1(config)# router ospf 1
+Router1(config-router)# passive-interface GigabitEthernet0/1
+
+3. Excluding Specific Interfaces:
+   - If all interfaces are passive by default, you can exclude specific interfaces from being passive:
+
+Example:
+On Router 1 (R1), exclude GigabitEthernet0/0 from being passive:
+
+Router1(config)# router ospf 1
+Router1(config-router)# no passive-interface GigabitEthernet0/0
+
+Verification:
+Check the passive interface configuration:
+
+Router# show ip ospf interface
+
+Notes:
+- Passive interfaces do not send OSPF Hello packets, but they still advertise the network in OSPF.
+- Use passive interfaces to optimize OSPF performance and reduce unnecessary OSPF traffic.
