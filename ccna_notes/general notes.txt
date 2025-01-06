@@ -1722,3 +1722,172 @@ Router(config-if)#ip ospf priority 1
 no router ospf 1
 show ip protocols
 clear ip ospf process 
+
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+--------------------------------
+TCP Header
+--------------------------------
+-Transmission Control Protocol (TCP) is a connection-oriented protocol that provides reliable, ordered, and error-checked delivery of data between devices. It is one of the main protocols in the Internet protocol suite.
+
+TCP Header Fields:
+
+Source Port: 16 bits
+Destination Port: 16 bits
+Sequence Number: 32 bits
+Acknowledgment Number: 32 bits
+Data Offset: 4 bits
+Reserved: 6 bits
+Flags: 6 bits
+Window Size: 16 bits
+Checksum: 16 bits
+Urgent Pointer: 16 bits
+Options: Variable length (up to 40 bytes)
+Padding: Variable length
+
+TCP Flags:
+
+SYN (Synchronize): Initiates a connection.
+ACK (Acknowledgment): Confirms receipt of data.
+FIN (Finish): Closes a connection.
+RST (Reset): Resets a connection.
+PSH (Push): Pushes data to the application.
+URG (Urgent): Indicates urgent data.
+ECE (ECN-Echo): Explicit Congestion Notification.
+CWR (Congestion Window Reduced): Acknowledges receipt of congestion notification.
+
+TCP Three-Way Handshake:
+
+SYN: Initiates a connection.
+SYN-ACK: Acknowledges the connection request.
+ACK: Confirms the connection.
+
+TCP Sliding Window:
+
+Allows the sender to transmit multiple segments before receiving an acknowledgment.
+Helps optimize network performance by reducing the number of acknowledgments.
+
+TCP Flow Control:
+
+Prevents the sender from overwhelming the receiver with data.
+Uses the window size to regulate the amount of data sent.
+
+TCP Congestion Control:
+
+Detects and responds to network congestion.
+Helps prevent packet loss and maintains network stability.
+
+TCP Retransmission:
+
+Resends lost or corrupted packets to ensure reliable data delivery.
+
+TCP Connection Termination:
+
+FIN: Initiates the connection termination process.
+ACK: Acknowledges the termination request.
+FIN-ACK: Confirms the termination.
+ACK: Completes the connection termination.
+
+TCP Ports:
+
+Well-Known Ports (0-1023): Reserved for system services (e.g., HTTP, FTP, SSH).
+Registered Ports (1024-49151): Assigned by IANA for specific applications.
+Dynamic/Private Ports (49152-65535): Available for temporary use by applications.
+
+---------------------------------
+UDP Header
+---------------------------------
+-User Datagram Protocol (UDP) is a connectionless protocol that provides fast, lightweight communication between devices. It is part of the Internet protocol suite along with TCP.
+
+UDP Header Fields:
+
+Source Port: 16 bits
+Destination Port: 16 bits
+Length: 16 bits
+Checksum: 16 bits
+
+UDP Features:
+
+Connectionless: Does not establish a connection before sending data.
+Low Overhead: Simple header structure for faster data transmission.
+Unreliable: Does not guarantee delivery or order of packets.
+Faster than TCP: Suitable for real-time applications like streaming media.
+
+UDP Applications:
+
+DNS (Domain Name System)
+VoIP (Voice over IP)
+DHCP (Dynamic Host Configuration Protocol)
+TFTP (Trivial File Transfer Protocol)
+SNMP (Simple Network Management Protocol)
+
+UDP Ports:
+
+Well-Known Ports (0-1023): Reserved for system services (e.g., DNS, DHCP).
+Registered Ports (1024-49151): Assigned by IANA for specific applications.
+Dynamic/Private Ports (49152-65535): Available for temporary use by applications.
+
+
+--------------------------------
+IP Addresses and IP Header
+--------------------------------
+
+IP Addresses:
+
+An IP address is a unique identifier assigned to each device connected to a network. It allows devices to communicate with each other over an IP-based network.
+
+Types of IP Addresses:
+
+1. IPv4 Address:
+- Format: 32-bit address divided into four octets (e.g., 192.168.1.1).
+- Classes: A, B, C, D, E.
+- Private Ranges: 
+    - Class A: 10.0.0.0 - 10.255.255.255
+    - Class B: 172.16.0.0 - 172.31.255.255
+    - Class C: 192.168.0.0 - 192.168.255.255
+
+2. IPv6 Address:
+- Format: 128-bit address divided into eight groups of four hexadecimal digits (e.g., 2001:0db8:85a3:0000:0000:8a2e:0370:7334).
+- Provides a larger address space compared to IPv4.
+- Supports auto-configuration and improved multicast routing.
+
+IP Header:
+
+The IP header is a part of the IP packet that contains essential information required for routing and delivery.
+
+IPv4 Header Fields:
+
+1. Version: 4 bits
+2. Header Length: 4 bits
+3. Type of Service (ToS): 8 bits
+4. Total Length: 16 bits
+5. Identification: 16 bits
+6. Flags: 3 bits
+7. Fragment Offset: 13 bits
+8. Time to Live (TTL): 8 bits
+9. Protocol: 8 bits
+10. Header Checksum: 16 bits
+11. Source IP Address: 32 bits
+12. Destination IP Address: 32 bits
+13. Options: Variable length (if any)
+14. Padding: Variable length (if any)
+
+IPv6 Header Fields:
+
+1. Version: 4 bits
+2. Traffic Class: 8 bits
+3. Flow Label: 20 bits
+4. Payload Length: 16 bits
+5. Next Header: 8 bits
+6. Hop Limit: 8 bits
+7. Source IP Address: 128 bits
+8. Destination IP Address: 128 bits
+
+Key Differences Between IPv4 and IPv6 Headers:
+
+1. Address Length: IPv4 uses 32-bit addresses, while IPv6 uses 128-bit addresses.
+2. Header Complexity: IPv6 has a simpler header with fewer fields.
+3. Fragmentation: IPv4 allows fragmentation by routers, while IPv6 handles fragmentation at the source.
+4. Checksum: IPv4 includes a header checksum, while IPv6 does not (relying on upper-layer protocols for error checking).
