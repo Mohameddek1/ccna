@@ -1,0 +1,2032 @@
+---------------------------------------------------
+Simple BGP configuration EBGP
+---------------------------------------------------
+-BGP stands for Border Gateway Protocol. It is the protocol used to exchange routing information between different networks on the internet, typically between different organizations or autonomous systems (AS).
+-eBGP is a type of Border Gateway Protocol (BGP) used to exchange routing information between different autonomous systems (AS). It is primarily used for communication between different organizations, ISPs, or networks.
+
+Why Use eBGP?
+- To connect to external networks, such as ISPs or other organizations.
+- To exchange routing information between networks owned by different companies.
+- To provide internet connectivity for users in your network.
+
+How eBGP Works:
+1.Peering:
+- Routers in different autonomous systems establish a connection called a peering session.
+- The connection is typically over a direct link or through intermediary networks.
+2.Route Sharing:
+- Each router shares information about the networks it knows within its AS.
+- Routes shared over eBGP are external routes, meaning they come from outside the autonomous system.
+3.Best Path Selection:
+- eBGP uses policies (configured by the network admin) and attributes like AS-path, next-hop, and MED (Multi-Exit Discriminator) to choose the best route to send data.
+
+Characteristics of eBGP:
+- Operates between routers in different AS (e.g., AS 100 and AS 200).
+- The default TTL (Time-To-Live) for eBGP packets is 1, meaning the peer must be directly connected unless explicitly configured otherwise.
+- eBGP typically advertises external routes learned from other AS.
+- eBGP uses TCP port 179 for communication between peers. 
+
+
+
+Simple example of how to configure eBGP (External Border Gateway Protocol) between two routers in different autonomous systems (AS).
+
+Scenario:
+
+Router1 (R1):
+Loopback IP: 1.1.1.1/32
+Interface IP: 192.168.12.1/24
+Autonomous System: AS 100
+
+Router2 (R2):
+Loopback IP: 2.2.2.2/32
+Interface IP: 192.168.12.2/24
+Autonomous System: AS 200
+
+Topology
+R1 (AS 100) ---- (192.168.12.0/24) ---- R2 (AS 200)
+
+
+Configuration:
+Step 1: Configure R1
+Assign IPs to the interfaces.
+Configure BGP with R2 as the eBGP neighbor.
+
+R1(config)# interface FastEthernet0/0
+R1(config-if)# ip address 192.168.12.1 255.255.255.0
+R1(config-if)# no shutdown
+R1(config-if)# exit
+
+R1(config)# interface Loopback0
+R1(config-if)# ip address 1.1.1.1 255.255.255.255
+R1(config-if)# exit
+
+R1(config)# router bgp 100
+R1(config-router)# neighbor 192.168.12.2 remote-as 200
+R1(config-router)# network 1.1.1.1 mask 255.255.255.255
+R1(config-router)# exit
+
+Step 2: Configure R2
+Assign IPs to the interfaces.
+Configure BGP with R1 as the eBGP neighbor.
+
+R2(config)# interface FastEthernet0/0
+R2(config-if)# ip address 192.168.12.2 255.255.255.0
+R2(config-if)# no shutdown
+R2(config-if)# exit
+
+R2(config)# interface Loopback0
+R2(config-if)# ip address 2.2.2.2 255.255.255.255
+R2(config-if)# exit
+
+R2(config)# router bgp 200
+R2(config-router)# neighbor 192.168.12.1 remote-as 100
+R2(config-router)# network 2.2.2.2 mask 255.255.255.255
+R2(config-router)# exit
+
+Step 3: Verify the BGP Configuration
+On R1:
+Check BGP Neighbor Status
+
+R1# show ip bgp summary
+
+Output:
+
+Neighbor        V    AS    MsgRcvd MsgSent  State/PfxRcd
+192.168.12.2    4   200       10       10      1
+Check BGP Routing Table
+
+
+R1# show ip bgp
+
+Output:
+
+Network          Next Hop          Metric LocPrf Weight Path
+2.2.2.2/32       192.168.12.2          0    100      0 200 i
+On R2:
+Check BGP Neighbor Status
+
+
+R2# show ip bgp summary
+
+Output:
+
+Neighbor        V    AS    MsgRcvd MsgSent  State/PfxRcd
+192.168.12.1    4   100       10       10      1
+
+Check BGP Routing Table
+
+R2# show ip bgp
+Output:
+
+
+Network          Next Hop          Metric LocPrf Weight Path
+1.1.1.1/32       192.168.12.1          0    100      0 100 i
+
+
+
+---------------------------------------------------------------------------------------------------
+BGP neighbourship using Non-directly-connected IPs + EBGP multihop
+---------------------------------------------------------------------------------------------------
+- BGP neighbor relationships using non-directly connected IPs require the use of eBGP multihop, as the default behavior of eBGP is to set the TTL (Time-To-Live) of BGP packets to 1. This ensures that neighbors must be directly connected unless explicitly configured otherwise.
+
+Why Use eBGP Multihop?
+1. To establish BGP neighbor relationships with routers that are not directly connected. In scenarios where BGP neighbors are not directly connected (e.g., separated by an intermediate router), eBGP multihop allows the session to establish across multiple hops.
+2. To increase the TTL (Time-To-Live) of BGP packets beyond the default value of 1. By increasing the TTL, BGP packets can traverse multiple routers to reach the neighbor, even if they are not directly connected.
+3. Network Design Flexibility: It's useful in cases like:
+- Peering between loopback addresses instead of physical interfaces.
+- Traffic engineering across intermediate networks.
+
+### Configuration Steps for eBGP Multihop
+Network Topology
+
+Router 1 (AS 100):
+Loopback IP: 1.1.1.1
+
+Physical Interface: 10.1.1.1/24
+
+Router 2 (AS 200):
+Loopback IP: 2.2.2.2
+Physical Interface: 10.1.1.2/24
+
+Intermediate connectivity is through the 10.1.1.0/24 network.
+
+1. Configure IPs on Both Routers
+Router 1
+interface Loopback0
+ ip address 1.1.1.1 255.255.255.255
+!
+interface Serial0/0/0
+ ip address 10.1.1.1 255.255.255.0
+ no shutdown
+
+
+Router 2
+
+interface Loopback0
+ ip address 2.2.2.2 255.255.255.255
+!
+interface Serial0/0/0
+ ip address 10.1.1.2 255.255.255.0
+ no shutdown
+
+2. Enable eBGP Multihop and Neighbor Relationships
+Router 1
+router bgp 100
+ bgp log-neighbor-changes
+ neighbor 2.2.2.2 remote-as 200
+ neighbor 2.2.2.2 ebgp-multihop 2
+ neighbor 2.2.2.2 update-source Loopback0
+
+Router 2
+router bgp 200
+ bgp log-neighbor-changes
+ neighbor 1.1.1.1 remote-as 100
+ neighbor 1.1.1.1 ebgp-multihop 2
+ neighbor 1.1.1.1 update-source Loopback0
+
+3. Verify Configuration
+
+Check BGP Neighbor Status:
+show ip bgp summary
+The neighbor relationship should be in the Established state.
+
+Check BGP Routes:
+show ip bgp
+
+Check the Routing Table:
+show ip route
+
+Example Output
+Router 1:
+
+Router1# show ip bgp summary
+Neighbor          V   AS  MsgRcvd  MsgSent  TblVer  InQ  OutQ  Up/Down  State/PfxRcd
+2.2.2.2           4  200      123      115       2    0     0  00:12:34  1
+
+Router 2:
+
+Router2# show ip bgp summary
+Neighbor          V   AS  MsgRcvd  MsgSent  TblVer  InQ  OutQ  Up/Down  State/PfxRcd
+1.1.1.1           4  100      121      113       2    0     0  00:12:30  1
+
+4. Verify Reachability Between Loopbacks
+Ensure that the loopback addresses are reachable using `static` or `dynamic routing`.
+
+Router 1
+ip route 2.2.2.2 255.255.255.255 10.1.1.2
+
+Router 2
+ip route 1.1.1.1 255.255.255.255 10.1.1.1
+
+
+---------------------------------------------------------------------------------------------------
+### Internal Border Gateway Protocol (iBGP)
+---------------------------------------------------------------------------------------------------
+- iBGP is used for exchanging BGP routes between routers within the same Autonomous System (AS). It ensures consistent routing within the AS and helps in propagating routes learned from eBGP peers to other routers inside the AS.
+
+Key Characteristics of iBGP:
+1. Same AS: iBGP neighbors belong to the same Autonomous System.
+2. Full Mesh Requirement: All iBGP routers must establish neighbor relationships with each other directly. This can be reduced using techniques like route reflectors or confederations.
+3. Does Not Change Next-Hop: By default, iBGP does not alter the next-hop attribute of routes learned from eBGP peers.
+4. Used for Internal Propagation: It does not advertise routes learned from one iBGP peer to another iBGP peer to avoid routing loops (known as the split-horizon rule in iBGP).
+
+
+Why Use iBGP?
+- Internal Route Propagation: To propagate external (eBGP) routes learned from one router to other routers inside the same AS.
+- Scalability: Used in large networks to ensure that routes are properly shared within the AS.
+
+Simple iBGP Configuration Example
+
+Network Topology:
+Router 1 (AS 100):
+Loopback IP: 1.1.1.1
+Interface: 10.1.1.1
+Router 2 (AS 100):
+Loopback IP: 2.2.2.2
+Interface: 10.1.1.2
+
+1. Enable iBGP on Router 1
+router bgp 100
+ bgp log-neighbor-changes
+ neighbor 2.2.2.2 remote-as 100
+ neighbor 2.2.2.2 update-source Loopback0
+
+2. Enable iBGP on Router 2
+router bgp 100
+ bgp log-neighbor-changes
+ neighbor 1.1.1.1 remote-as 100
+ neighbor 1.1.1.1 update-source Loopback0
+
+3. Ensure Loopback Reachability
+Since iBGP sessions are established between loopbacks, routers must have routes to reach each other's loopback IPs. Use static routing or IGP (e.g., OSPF) for this.
+
+Router 1:
+ip route 2.2.2.2 255.255.255.255 10.1.1.2
+
+Router 2:
+ip route 1.1.1.1 255.255.255.255 10.1.1.1
+
+Verifying the Configuration
+Check BGP Neighbor Status:
+show ip bgp summary
+Ensure the neighbor relationship is Established.
+
+Check Received Routes:
+show ip bgp
+
+Check Routing Table:
+show ip route
+Example Output
+
+Router 1:
+Router1# show ip bgp summary
+Neighbor          V   AS  MsgRcvd  MsgSent  TblVer  InQ  OutQ  Up/Down  State/PfxRcd
+2.2.2.2           4  100      15       14       3    0     0  00:01:10  3
+
+Router 2:
+Router2# show ip bgp summary
+Neighbor          V   AS  MsgRcvd  MsgSent  TblVer  InQ  OutQ  Up/Down  State/PfxRcd
+1.1.1.1           4  100      15       14       3    0     0  00:01:12  3
+
+
+
+---------------------------------------------------------------------------------------------------
+Reading BGP table
+---------------------------------------------------------------------------------------------------
+- The BGP table is a key component of BGP, storing all the routing information received from BGP peers. It includes every possible route BGP knows, even if not all routes are used in the router's routing table. Let's break down how to read and interpret the BGP table using examples.
+
+## Command to View the BGP Table
+show ip bgp
+
+Example Output and How to Interpret It
+Router# show ip bgp
+BGP table version is 8, local router ID is 1.1.1.1
+Status codes: s suppressed, d damped, h history, * valid, > best, i internal
+Origin codes: i - IGP, e - EGP, ? - incomplete
+
+     Network          Next Hop            Metric LocPrf Weight Path
+*>   10.1.1.0/24      192.168.1.2             0    100      0 200 i
+*    10.1.1.0/24      192.168.1.3             0    100      0 300 i
+*>   10.2.2.0/24      0.0.0.0                 0         32768 i
+     172.16.0.0/16    192.168.2.2             0    100      0 400 i
+
+
+###################################
+Explanation of Each Column
+###################################
+1. Network
+Lists the destination prefixes or networks being advertised in BGP.
+Example: 10.1.1.0/24 refers to the network with a 24-bit subnet mask.
+2. Next Hop
+The IP address of the next hop to reach the destination network.
+Example: 192.168.1.2 is the next-hop IP to reach 10.1.1.0/24.
+3. Metric
+The MED (Multi-Exit Discriminator) value used to indicate a preferred path to external neighbors. Lower values are preferred.
+Example: 0 indicates no MED is set.
+4. LocPrf (Local Preference)
+Indicates the preference for outgoing traffic within the same AS. Higher values are preferred.
+Example: 100 is the default value unless explicitly configured.
+5. Weight
+A Cisco-proprietary value for local preference. Higher values are preferred. Not shared between routers.
+Example: 0 is the default unless manually configured.
+6. Path
+Displays the AS Path attribute. It shows the sequence of AS numbers that the route has traversed.
+Example: 200 indicates the route passed through AS 200.
+
+Key Symbols to Know
+*: The route is valid (it has passed BGP policy checks).
+>: Indicates the best path (the route added to the routing table).
+i: Origin code meaning the route was learned via an IGP (Interior Gateway Protocol).
+e: Origin code meaning the route was learned via an EGP (Exterior Gateway Protocol).
+?: Origin code meaning the origin of the route is incomplete (e.g., redistributed from a static or connected route).
+
+
+##################
+Example Breakdown
+##################
+*>   10.1.1.0/24      192.168.1.2             0    100      0 200 i
+*    10.1.1.0/24      192.168.1.3             0    100      0 300 i
+- There are two routes to 10.1.1.0/24.
+- Next Hops:
+* First route uses 192.168.1.2 as the next hop.
+* Second route uses 192.168.1.3.
+- Best Route: The > indicates that the first route (via 192.168.1.2) is the best and has been added to the routing table.
+- AS Path:
+* The first route passed through AS 200.
+* The second route passed through AS 300.
+
+
+################################################
+Verifying the BGP Table Entry in Routing Table
+################################################
+To see which BGP route made it into the routing table, use:
+
+show ip route
+
+Example output:
+
+B     10.1.1.0/24 [20/0] via 192.168.1.2, 00:10:21
+
+- B: Indicates this route was learned via BGP.
+- [20/0]: Administrative distance (20) and metric (0).
+- via 192.168.1.2: The next-hop IP address.
+
+
+
+---------------------------------------------------------------------------------------------------
+How to advertise Networks in BGP
+---------------------------------------------------------------------------------------------------
+- Advertised networks in BGP are the IP networks that a BGP router announces to its peers. These networks are shared with other routers to update their routing tables. Here's how to advertise networks in BGP using the network command in Cisco IOS.
+- ways are:
+1. Network
+2. Redistribution
+
+################################################
+Command to Advertise Networks in BGP
+################################################
+router bgp <AS_number>
+ network <network_address> mask <subnet_mask>
+
+Example
+Suppose you want to advertise the network 192.168.1.0/24 from a router in AS 100.
+router bgp 100
+ network 192.168.1.0 mask 255.255.255.0
+
+################################################
+router bgp <AS_number>
+ redistribute <protocol>
+
+Example
+If the router is learning routes from RIP, you can redistribute them into BGP:
+router bgp 100
+ redistribute rip
+
+
+
+-------------------------------------------------------------
+Next Hop Self in BGP  -x
+-------------------------------------------------------------
+- In BGP (Border Gateway Protocol), the Next Hop attribute specifies the IP address of the next router that should be used to reach a particular destination. By default, when a BGP route is advertised to a neighbor, the Next Hop is set to the IP address of the router that originated the advertisement.
+
+- However, in certain situations, the default behavior of the Next Hop attribute may not work as desired. This is where the next-hop-self command comes into play.
+
+What is next-hop-self?
+- The next-hop-self command in BGP is used to force BGP to advertise itself as the next hop for the advertised routes to its neighbors, instead of the original next hop.
+
+- This is useful in scenarios where BGP routes need to be advertised to an iBGP neighbor (internal BGP) or when the next hop address cannot be reached by the iBGP peer.
+
+Why Use next-hop-self?
+- To ensure that the iBGP peers can reach the next hop for the advertised routes.
+- To simplify routing configurations and avoid potential routing issues.
+- To prevent routing loops and ensure consistent routing within the AS.
+
+How to Use next-hop-self
+- The next-hop-self command is configured under the BGP router configuration mode for the specific neighbor to which the routes are being advertised.
+
+Example Configuration
+router bgp <AS_number>
+ neighbor <neighbor_IP> next-hop-self
+
+
+Example 1: Configuring next-hop-self for an iBGP Neighbor
+Let's say you have two routers, Router1 and Router2, both in the same AS (AS 100), and Router1 is advertising a route to Router2.
+
+Without next-hop-self, Router2 would need to reach Router1's next hop, which might be unreachable. To solve this, you configure next-hop-self on Router1 for Router2.
+
+Router1 Configuration (BGP AS 100):
+router bgp 100
+ neighbor 10.1.1.2 next-hop-self
+Explanation: This forces Router1 to advertise itself as the next hop for any routes it sends to Router2 (neighbor 10.1.1.2).
+
+Router2 Configuration (BGP AS 100):
+router bgp 100
+ neighbor 10.1.1.1 remote-as 100
+Explanation: Router2 is the iBGP peer of Router1, and it will now use Router1’s IP address as the next-hop for any routes.
+
+
+Example 2: Configuring next-hop-self for eBGP to iBGP Route Advertisement
+If you have a router connected to external peers via eBGP and you want to advertise those routes to internal iBGP neighbors using next-hop-self, here's how you can configure it.
+
+Router1 Configuration (eBGP to iBGP):
+router bgp 100
+ neighbor 10.1.1.2 remote-as 100
+ neighbor 10.1.1.2 next-hop-self  # Makes Router1 the next-hop for iBGP peers
+
+
+
+---------------------------------------------------------------------------------------------------
+Auto Summary in BGP
+---------------------------------------------------------------------------------------------------
+- The `auto-summary` feature in BGP automatically summarizes subnet routes to their classful network boundaries when advertising routes to BGP peers. This feature is useful in certain scenarios but can also lead to suboptimal routing if not used carefully.
+
+Why Use Auto Summary?
+1. Simplifies Routing Tables: Reduces the number of routes in the BGP table by summarizing multiple subnets into a single classful network.
+2. Reduces BGP Updates: Minimizes the number of BGP updates sent between peers by advertising summarized routes.
+
+When to Avoid Auto Summary?
+1. Discontiguous Networks: If your network has discontiguous subnets, auto-summary can cause routing issues by summarizing routes incorrectly.
+2. Precise Control: When you need precise control over route advertisements and do not want automatic summarization.
+
+How to Enable/Disable Auto Summary
+- By default, auto-summary is disabled in BGP. You can enable or disable it using the `auto-summary` command in BGP router configuration mode.
+
+Example Configuration
+Enable Auto Summary:
+router bgp <AS_number>
+ auto-summary
+
+Disable Auto Summary:
+router bgp <AS_number>
+ no auto-summary
+
+Example Scenario
+Consider a router in AS 100 with the following subnets:
+- 192.168.1.0/24
+- 192.168.2.0/24
+
+With auto-summary enabled, BGP will advertise these subnets as the classful network 192.168.0.0/16.
+
+Router Configuration:
+router bgp 100
+ network 192.168.1.0 mask 255.255.255.0
+ network 192.168.2.0 mask 255.255.255.0
+ auto-summary
+
+Verification
+To verify the auto-summary configuration and the routes being advertised, use the following commands:
+
+Check BGP Summary:
+show ip bgp summary
+
+Check Advertised Routes:
+show ip bgp neighbors <neighbor_IP> advertised-routes
+
+Example Output:
+Router# show ip bgp neighbors 192.168.3.1 advertised-routes
+Network          Next Hop            Metric LocPrf Weight Path
+*> 192.168.0.0/16 0.0.0.0                  0         32768 i
+
+In this example, the subnets 192.168.1.0/24 and 192.168.2.0/24 are summarized and advertised as 192.168.0.0/16.
+
+
+---------------------------------------------------------------------------------------------------
+BGP Neighbor Adjacency States
+---------------------------------------------------------------------------------------------------
+- BGP (Border Gateway Protocol) neighbor adjacency states are the different stages that BGP peers go through to establish and maintain a BGP session. Understanding these states is crucial for troubleshooting BGP issues.
+- TCP 179
+
+1. Idle - no neighbour defined
+- The initial state where BGP waits for a "start event" to begin the process of establishing a BGP session.
+- BGP initializes resources and resets the connection if necessary.
+
+2. Connect
+- BGP attempts to establish a TCP connection with the neighbor.
+- If the connection is successful, it moves to the OpenSent state.
+- If unsuccessful, it transitions to the Active state.
+
+3. Active
+- BGP continues to try to establish a TCP connection with the neighbor.
+- If successful, it moves to the OpenSent state.
+- If it fails again, it transitions back to the Idle state.
+
+4. OpenSent - if EBGP or IBGP
+- BGP has sent an OPEN message and is waiting for an OPEN message from the neighbor.
+- If an OPEN message is received and valid, it moves to the OpenConfirm state.
+- If an error occurs, it transitions back to the Idle state.
+
+5. OpenConfirm
+- BGP waits for a KEEPALIVE message from the neighbor to confirm the OPEN message.
+- If a KEEPALIVE message is received, it moves to the Established state.
+- If an error occurs, it transitions back to the Idle state.
+
+6. Established
+- The BGP session is fully established, and peers can exchange UPDATE, KEEPALIVE, and NOTIFICATION messages.
+- This is the final state where routing information is exchanged between BGP peers.
+
+Summary of BGP Neighbor Adjacency States:
+- Idle: Initial state, waiting to start.
+- Connect: Attempting to establish a TCP connection.
+- Active: Continuing attempts to establish a TCP connection.
+- OpenSent: Waiting for an OPEN message from the neighbor.
+- OpenConfirm: Waiting for a KEEPALIVE message to confirm the OPEN message.
+- Established: BGP session is established, and routing information is exchanged.
+
+Troubleshooting Tips:
+- If a BGP session is stuck in the Idle or Active state, check for TCP connectivity issues, such as ACLs or firewalls blocking the connection.
+- If a session is stuck in the OpenSent or OpenConfirm state, verify that the BGP configuration parameters (e.g., AS numbers, IP addresses) match on both peers.
+- Use the `show ip bgp summary` command to view the current state of BGP neighbors and diagnose issues.
+
+Example Command:
+Router# show ip bgp summary
+Neighbor        V    AS    MsgRcvd MsgSent  State/PfxRcd
+192.168.12.2    4   200       10       10      1
+
+
+---------------------------------------------------------------------------------------------------
+BGP messages
+---------------------------------------------------------------------------------------------------
+- BGP (Border Gateway Protocol) uses several types of messages to establish and maintain routing information exchange between BGP peers. Understanding these message types is essential for troubleshooting BGP issues and ensuring proper network connectivity.
+
+1. OPEN Message:
+- The first message exchanged between BGP peers to establish a BGP session.
+- Contains information about the sending router, such as its BGP version, AS number, and hold time.
+- If the OPEN message is accepted, the BGP session moves to the OpenSent state.
+
+2. KEEPALIVE Message:
+- Sent periodically between BGP peers to maintain the BGP session.
+- Contains no routing information but serves as a heartbeat to ensure the session remains active.
+- If a KEEPALIVE message is not received within the hold time, the BGP session is reset.
+
+3. UPDATE Message:
+- Contains routing information exchanged between BGP peers.
+- Includes information about network prefixes, AS paths, and other attributes.
+- Allows BGP peers to update their routing tables based on the received information.
+
+4. NOTIFICATION Message:
+- Sent to inform a BGP peer of an error condition or to terminate a BGP session.
+- Indicates issues like invalid messages, hold timer expiration, or other errors.
+- If a NOTIFICATION message is received, the BGP session is reset.
+
+5. Route Refresh Message:
+- Used to request an update of BGP routes without resetting the BGP session.
+- Allows a BGP peer to request a refresh of the routing information from its neighbor.
+- Helps avoid the need to reset the BGP session to update routing tables.
+
+6. Capabilities Message:
+- Exchanged during the BGP session establishment to negotiate optional capabilities between peers.
+- Allows BGP peers to agree on features like Multiprotocol BGP (MP-BGP) or route refresh support.
+- Ensures that both peers can support the desired BGP capabilities during the session.
+
+Understanding BGP message types is crucial for diagnosing and resolving BGP issues, ensuring proper routing information exchange, and maintaining network connectivity.
+
+Example Command:
+Router# show ip bgp neighbors
+
+
+---------------------------------------------------------------------------------------------------
+Troubleshooting BGP
+---------------------------------------------------------------------------------------------------
+- Troubleshooting BGP (Border Gateway Protocol) issues is a critical skill for network administrators and engineers. BGP is a complex protocol used for routing on the internet and between autonomous systems (AS). Here are some common troubleshooting steps and commands to help diagnose and resolve BGP problems.
+
+1. Verify BGP Neighbor Status:
+- Check the status of BGP neighbors to ensure they are established and exchanging routing information.
+- Use the `show ip bgp summary` or `show ip bgp neighbors` command to view the neighbor status.
+
+Example: `show ip bgp summary`
+
+2. Check BGP Routes:
+- Verify the BGP routing table to see the routes learned from BGP peers.
+- Use the `show ip bgp` command to view the BGP routing table and check the advertised routes.
+
+Example: `show ip bgp`
+
+3. Review BGP Configuration:
+- Check the BGP configuration on routers to ensure that AS numbers, neighbor IP addresses, and other parameters are correctly configured.
+- Use the `show run | section router bgp` command to view the BGP configuration.
+
+Example: `show run | section router bgp`
+
+4. Verify Reachability:
+- Ensure that routers can reach each other's BGP neighbor IP addresses and loopback addresses.
+- Use the `ping` or `traceroute` command to test reachability between BGP peers.
+
+Example: `ping <neighbor_IP>`
+
+################################################
+for trouble shooting BGP
+################################################
+- layer 1 - physical layer e.g. cable, connector
+- layer 2 - data link layer e.g. mac address
+- layer 3 - network layer e.g. ip address
+- layer 4 - transport layer e.g. tcp, udp, telnet
+
+* these are the layers (1-4) to focus when trouble shooting BGP
+
+- layer 5 - session layer e.g. netbios
+- layer 6 - presentation layer e.g. encryption, compression, ascii, jpeg, gif, mp3, mpeg
+- layer 7 - application layer e.g. dns, dhcp, http, https, ftp, smtp, pop3, imap, telnet, ssh, ntp, snmp, ldap, rdp, sip, smb, nfs, sql, rtp, rtsp, xmpp, irc, xmpp, sip, h323, bittorrent, tor, i2p, skype, voip, vpn, ssl, tls, ssh, sftp, scp, ftps, pgp, s/mime, ipsec, l2tp, pptp, isakmp, ikev2, openvpn, wireguard, kerberos
+
+
+---------------------------------------------------------------------------------------------------
+Troubleshooting BGP Network Advertisement
+---------------------------------------------------------------------------------------------------
+- Troubleshooting BGP network advertisement issues involves diagnosing problems related to the advertisement of routes between BGP peers. This can include missing routes, incorrect route information, or routing loops. Here are some common troubleshooting steps and commands to address BGP network advertisement problems.
+
+1. Verify BGP Neighbor Status:
+- Check the status of BGP neighbors to ensure they are established and exchanging routing information.
+- Use the `show ip bgp summary` or `show ip bgp neighbors` command to view the neighbor status.
+
+Example: `show ip bgp summary`
+
+2. Check Advertised Routes:
+- Verify that the correct networks are being advertised to BGP peers.
+- Use the `show ip bgp neighbors <neighbor_IP> advertised-routes` command to view the routes being advertised to a specific neighbor.
+
+Example: `show ip bgp neighbors
+
+---------------------------------------------------------------------------------------------------
+BGP Route Aggregation
+---------------------------------------------------------------------------------------------------
+- BGP route aggregation is the process of combining multiple specific routes into a single, summarized route. This helps reduce the size of the BGP routing table and minimizes the number of routes advertised to BGP peers.
+
+Why Use Route Aggregation?
+1. Reduces Routing Table Size: Aggregating routes decreases the number of entries in the BGP routing table, improving router performance.
+2. Simplifies Network Management: Summarized routes make network management easier by reducing the complexity of routing information.
+3. Minimizes BGP Updates: Fewer routes mean fewer BGP updates, reducing the load on network resources.
+
+How to Configure Route Aggregation
+- Use the `aggregate-address` command in BGP router configuration mode to configure route aggregation.
+
+Example Configuration
+Suppose you have the following specific routes in your BGP table:
+- 192.168.1.0/24
+- 192.168.2.0/24
+- 192.168.3.0/24
+
+You can aggregate these routes into a single summarized route 192.168.0.0/22.
+
+Router Configuration:
+router bgp 100
+ aggregate-address 192.168.0.0 255.255.252.0
+
+Optional Parameters:
+- `summary-only`: Advertises only the summarized route and suppresses the specific routes.
+- `as-set`: Includes the AS path information of the aggregated routes.
+
+Example with Optional Parameters:
+router bgp 100
+ aggregate-address 192.168.0.0 255.255.252.0 summary-only as-set
+
+Verification
+To verify the route aggregation configuration and the routes being advertised, use the following commands:
+
+Check BGP Summary:
+show ip bgp summary
+
+Check Advertised Routes:
+show ip bgp neighbors <neighbor_IP> advertised-routes
+
+Example Output:
+Router# show ip bgp neighbors 192.168.3.1 advertised-routes
+Network          Next Hop            Metric LocPrf Weight Path
+*> 192.168.0.0/22 0.0.0.0                  0         32768 i
+
+In this example, the specific routes 192.168.1.0/24, 192.168.2.0/24, and 192.168.3.0/24 are aggregated and advertised as 192.168.0.0/22.
+
+
+---------------------------------------------------------------------------------------------------
+Split Horizon in BGP
+---------------------------------------------------------------------------------------------------
+- Split Horizon is a mechanism used in BGP to prevent routing loops within an Autonomous System (AS). It ensures that routes learned from one iBGP peer are not advertised to another iBGP peer.
+
+Why Use Split Horizon?
+1. Prevent Routing Loops: Ensures that routes learned from one iBGP peer are not advertised back to other iBGP peers, preventing potential routing loops.
+2. Maintain Consistent Routing: Helps maintain consistent routing information within the AS by controlling the propagation of routes.
+
+How Split Horizon Works in BGP:
+- By default, BGP does not advertise routes learned from one iBGP peer to another iBGP peer. This is known as the iBGP split horizon rule.
+- To propagate routes within an AS, techniques like route reflectors or confederations are used to overcome the limitations of the split horizon rule.
+
+Example Scenario:
+Consider a network with three routers (R1, R2, and R3) in the same AS (AS 100). R1 learns a route from an external BGP (eBGP) peer and advertises it to R2 and R3.
+
+Without Split Horizon:
+- R2 and R3 would advertise the route learned from R1 to each other, potentially causing routing loops.
+
+With Split Horizon:
+- R2 and R3 do not advertise the route learned from R1 to each other, preventing routing loops.
+
+Overcoming Split Horizon with Route Reflectors:
+- Route reflectors allow iBGP routers to advertise routes learned from one iBGP peer to another iBGP peer, overcoming the split horizon rule.
+
+Example Configuration:
+Router 1 (Route Reflector):
+router bgp 100
+ bgp log-neighbor-changes
+ neighbor 2.2.2.2 remote-as 100
+ neighbor 2.2.2.2 route-reflector-client
+ neighbor 3.3.3.3 remote-as 100
+ neighbor 3.3.3.3 route-reflector-client
+
+Router 2 (Client):
+router bgp 100
+ bgp log-neighbor-changes
+ neighbor 1.1.1.1 remote-as 100
+
+Router 3 (Client):
+router bgp 100
+ bgp log-neighbor-changes
+ neighbor 1.1.1.1 remote-as 100
+
+Verification:
+To verify the split horizon configuration and the routes being advertised, use the following commands:
+
+Check BGP Summary:
+show ip bgp summary
+
+Check Received Routes:
+show ip bgp
+
+Check Routing Table:
+show ip route
+
+Example Output:
+Router 1:
+Router1# show ip bgp summary
+Neighbor          V   AS  MsgRcvd  MsgSent  TblVer  InQ  OutQ  Up/Down  State/PfxRcd
+2.2.2.2           4  100      15       14       3    0     0  00:01:10  3
+3.3.3.3           4  100      15       14       3    0     0  00:01:12  3
+
+Router 2:
+Router2# show ip bgp summary
+Neighbor          V   AS  MsgRcvd  MsgSent  TblVer  InQ  OutQ  Up/Down  State/PfxRcd
+1.1.1.1           4  100      15       14       3    0     0  00:01:10  3
+
+Router 3:
+Router3# show ip bgp summary
+Neighbor          V   AS  MsgRcvd  MsgSent  TblVer  InQ  OutQ  Up/Down  State/PfxRcd
+1.1.1.1           4  100      15       14       3    0     0  00:01:12  3
+
+
+---------------------------------------------------------------------------------------------------
+Route Maps in BGP
+---------------------------------------------------------------------------------------------------
+- Route maps in BGP are used to control and modify routing information. They provide a flexible way to implement routing policies by matching specific criteria and applying actions to routes.
+
+Key Characteristics of Route Maps:
+1. Match and Set: Route maps consist of match and set clauses. The match clause specifies the criteria to match routes, and the set clause defines the actions to apply to matched routes.
+2. Sequence Numbers: Route maps are processed in order based on sequence numbers. Lower sequence numbers are processed first.
+3. Permit and Deny: Route maps can permit or deny routes based on the specified criteria.
+
+Why Use Route Maps?
+- To filter routes based on specific criteria.
+- To modify route attributes such as weight, local preference, or next hop.
+- To implement complex routing policies.
+
+How to Configure Route Maps:
+- Route maps are configured using the `route-map` command in global configuration mode.
+
+Example Configuration:
+Suppose you want to set the weight attribute for routes learned from a specific neighbor.
+
+Router Configuration:
+route-map SET_WEIGHT permit 10
+ match ip address 10
+ set weight 200
+
+ip access-list standard 10
+ permit 192.168.1.0 0.0.0.255
+
+router bgp 100
+ neighbor 192.168.1.1 remote-as 200
+ neighbor 192.168.1.1 route-map SET_WEIGHT in
+
+Explanation:
+- The route map `SET_WEIGHT` matches routes with IP addresses in the access list 10 and sets their weight to 200.
+- The route map is applied to routes learned from neighbor 192.168.1.1 in the inbound direction.
+
+Verification:
+To verify the route map configuration and the modified routes, use the following commands:
+
+Check BGP Routes:
+show ip bgp
+
+Check Route Map:
+show route-map
+
+Example Output:
+Router# show ip bgp
+Network          Next Hop            Metric LocPrf Weight Path
+*> 10.1.1.0/24   192.168.1.1              0    100    200 200 i
+
+Router# show route-map
+route-map SET_WEIGHT, permit, sequence 10
+     Match clauses:
+          ip address (access-lists): 10
+     Set clauses:
+          weight 200
+     Policy routing matches: 0
+
+In this example, the route map `SET_WEIGHT` sets the weight of routes learned from 192.168.1.1 to 200, influencing the route selection process.
+
+
+
+
+`------------------------------------------Selection of the best path in BGP------------------------------------------`
+
+
+---------------------------------------------------------------------------------------------------
+Local Preference in BGP
+---------------------------------------------------------------------------------------------------
+- The local preference attribute in BGP is used to influence the selection of the best path for outbound traffic within an Autonomous System (AS). It is a well-known discretionary attribute and is propagated to all routers within the same AS.
+- local preference is 100 by default
+
+Key Characteristics of Local Preference:
+1. Higher is Better: Routes with a higher local preference value are preferred over routes with a lower value.
+2. Propagated Within AS: The local preference attribute is shared with all iBGP peers within the same AS.
+3. Default Value: The default local preference value is 100, but it can be manually set to influence route selection.
+
+Why Use Local Preference?
+- To control the selection of outbound paths for traffic leaving the AS.
+- To prefer certain routes over others based on administrative policies.
+- To implement routing policies that influence traffic flow within the AS.
+
+How to Configure Local Preference:
+- The local preference attribute can be set using route maps or directly in the BGP configuration.
+
+Example Configuration:
+Suppose you have two BGP neighbors, and you want to prefer routes learned from neighbor 192.168.1.1 over those learned from neighbor 192.168.2.1.
+
+Router Configuration:
+```
+router bgp 100
+ neighbor 192.168.1.1 remote-as 200
+ neighbor 192.168.1.1 route-map SET_LOCAL_PREF in
+ neighbor 192.168.2.1 remote-as 300
+
+route-map SET_LOCAL_PREF permit 10
+ set local-preference 200
+```
+
+`or`
+
+```
+router bgp 100
+ bgp default local-preference 200
+```
+
+Verification:
+To verify the local preference configuration and the selected routes, use the following commands:
+
+Check BGP Routes:
+show ip bgp
+
+Example Output:
+Router# show ip bgp
+Network          Next Hop            Metric LocPrf Weight Path
+*> 10.1.1.0/24   192.168.1.1              0    200      0 200 i
+*  10.1.1.0/24   192.168.2.1              0    100      0 300 i
+
+In this example, the route learned from 192.168.1.1 has a higher local preference (200) and is preferred over the route learned from 192.168.2.1 (local preference 100).
+
+
+---------------------------------------------------------------------------------------------------
+Weight Attribute in BGP
+---------------------------------------------------------------------------------------------------
+- The weight attribute in BGP is a Cisco-specific parameter used to influence the selection of the best path for outbound traffic. It is a local attribute, meaning it is not advertised to other routers.
+
+Key Characteristics of the Weight Attribute:
+1. Local to the Router: The weight attribute is only relevant to the local router and is not propagated to other BGP peers.
+2. Higher is Better: Routes with a higher weight are preferred over routes with a lower weight.
+3. Default Value: The default weight value is 0, but it can be manually set to influence route selection.
+
+Why Use the Weight Attribute?
+- To control the selection of outbound paths for traffic leaving the router.
+- To prefer certain routes over others based on administrative policies.
+
+How to Configure the Weight Attribute:
+- The weight attribute can be set using route maps or directly in the BGP neighbor configuration.
+
+- 0 = external bgp
+- 32768 = internal bgp(local)
+
+Example Configuration:
+Suppose you have two BGP neighbors, and you want to prefer routes learned from neighbor 192.168.1.1 over those learned from neighbor 192.168.2.1.
+
+Router Configuration:
+router bgp 100
+ neighbor 192.168.1.1 remote-as 200
+ neighbor 192.168.1.1 weight 200
+ neighbor 192.168.2.1 remote-as 300
+ neighbor 192.168.2.1 weight 100
+
+Verification:
+To verify the weight attribute configuration and the selected routes, use the following commands:
+
+Check BGP Routes:
+show ip bgp
+
+Example Output:
+Router# show ip bgp
+Network          Next Hop            Metric LocPrf Weight Path
+*> 10.1.1.0/24   192.168.1.1              0    100    200 200 i
+*  10.1.1.0/24   192.168.2.1              0    100    100 300 i
+
+In this example, the route learned from 192.168.1.1 has a higher weight (200) and is preferred over the route learned from 192.168.2.1 (weight 100).
+
+
+
+
+---------------------------------------------------------------------------------------------------
+BGP as-prepend
+---------------------------------------------------------------------------------------------------
+- The `as-prepend` attribute in BGP is used to influence the selection of the best path for outbound traffic by adding the AS number multiple times to the AS path attribute. This can help control the inbound traffic flow and influence route selection.
+
+Key Characteristics of as-prepend:
+1. AS Path Manipulation: The `as-prepend` attribute adds the local AS number to the AS path of routes advertised to BGP peers.
+2. Influence Route Selection: By increasing the length of the AS path, the `as-prepend` attribute can influence the selection of the best path for outbound traffic.
+3. Control Inbound Traffic: By manipulating the AS path, the `as-prepend` attribute can control the inbound traffic flow to the local AS.
+
+Why Use as-prepend?
+- To influence the selection of the best path for outbound traffic.
+- To control the inbound traffic flow by modifying the AS path attribute.
+- To implement routing policies that influence route selection and traffic engineering.
+
+How to Configure as-prepend:
+- The `as-prepend` attribute can be set using route maps or directly in the BGP neighbor configuration.
+
+Example Configuration:
+Suppose you want to prepend the local AS number twice to routes advertised to a specific BGP neighbor.
+
+Router Configuration:
+router bgp 100
+ neighbor 192.168.1.1 remote-as 200
+ network 10.10.10.0 mask 255.255.255.0
+ neighbor 192.168.1.1 route-map PREPEND-AS out
+
+route-map PREPEND-AS permit 10
+ match ip address prefix-list MY-NETWORK
+ set as-path prepend 100 100
+
+ip prefix-list MY-NETWORK permit 10.10.10.0/24
+Explanation:
+
+Router BGP Configuration:
+The router is in AS 100.
+It has a neighbor with the IP 192.168.1.1 in AS 200.
+The route 10.10.10.0/24 is being advertised to this neighbor.
+
+AS Path Prepending:
+The route-map PREPEND-AS applies AS path prepending when advertising routes to the neighbor.
+The command set as-path prepend 100 100 prepends the local AS (100) twice to the AS path.
+Prefix List:
+
+The prefix list MY-NETWORK ensures that AS path prepending is only applied to the specific route 10.10.10.0/24.
+Verification
+On the Local Router: Check the advertised routes to the neighbor:
+
+show ip bgp neighbors 192.168.1.1 advertised-routes
+Output:
+
+Network          Next Hop            Metric LocPrf Weight Path
+*> 10.10.10.0    0.0.0.0                  0      100      100 100
+On the Neighbor Router: Verify the AS path in the BGP table:
+
+show ip bgp
+Output:
+
+Network          Next Hop            Metric LocPrf Weight Path
+*> 10.10.10.0    192.168.1.2              0              100 100
+
+
+
+---------------------------------------------------------------------------------------------------
+BGP Origin Code
+---------------------------------------------------------------------------------------------------
+- The BGP origin code is an attribute that indicates the origin of a route. It helps in determining the source of the route and influences the selection of the best path.
+
+Key Origin Codes:
+1. IGP (i): Indicates that the route was learned from an Interior Gateway Protocol (IGP) within the same AS. This is the most preferred origin code.
+2. EGP (e): Indicates that the route was learned from the Exterior Gateway Protocol (EGP). This is less preferred than IGP.
+3. Incomplete (?): Indicates that the origin of the route is unknown or learned through other means, such as route redistribution. This is the least preferred origin code.
+
+Why Use Origin Codes?
+- To determine the source of a route and influence the selection of the best path.
+- To implement routing policies based on the origin of routes.
+
+How to View Origin Codes:
+- The origin code can be viewed in the BGP table using the `show ip bgp` command.
+
+Example Output:
+Router# show ip bgp
+BGP table version is 8, local router ID is 1.1.1.1
+Status codes: s suppressed, d damped, h history, * valid, > best, i internal
+Origin codes: i - IGP, e - EGP, ? - incomplete
+
+     Network          Next Hop            Metric LocPrf Weight Path
+*>   10.1.1.0/24      192.168.1.2             0    100      0 200 i
+*    10.1.1.0/24      192.168.1.3             0    100      0 300 e
+*>   10.2.2.0/24      0.0.0.0                 0         32768 i
+     172.16.0.0/16    192.168.2.2             0    100      0 400 ?
+
+Explanation of Example Output:
+- The route to 10.1.1.0/24 has two entries with different origin codes:
+  - The first entry has an origin code of "i" (IGP), indicating it was learned from an IGP.
+  - The second entry has an origin code of "e" (EGP), indicating it was learned from EGP.
+- The route to 10.2.2.0/24 has an origin code of "i" (IGP).
+- The route to 172.16.0.0/16 has an origin code of "?" (incomplete), indicating the origin is unknown.
+
+Using Origin Codes in Routing Policies:
+- Origin codes can be used in route maps to influence routing decisions based on the source of routes.
+
+Example Configuration:
+Suppose you want to prefer routes with an origin code of IGP over those with EGP or incomplete origin.
+
+Router Configuration:
+route-map PREFER_IGP permit 10
+ match origin igp
+ set local-preference 200
+
+route-map PREFER_IGP permit 20
+ match origin egp
+ set local-preference 150
+
+route-map PREFER_IGP permit 30
+ match origin incomplete
+ set local-preference 100
+
+router bgp 100
+ neighbor 192.168.1.1 remote-as 200
+ neighbor 192.168.1.1 route-map PREFER_IGP in
+
+Verification:
+To verify the routing policy based on origin codes, use the following commands:
+
+Check BGP Routes:
+show ip bgp
+
+Check Route Map:
+show route-map
+
+Example Output:
+Router# show ip bgp
+Network          Next Hop            Metric LocPrf Weight Path
+*> 10.1.1.0/24   192.168.1.2              0    200      0 200 i
+*  10.1.1.0/24   192.168.1.3              0    150      0 300 e
+*> 10.2.2.0/24   0.0.0.0                  0    200      0 i
+  172.16.0.0/16  192.168.2.2              0    100      0 400 ?
+
+In this example, routes with an origin code of IGP have a higher local preference (200) and are preferred over routes with EGP (local preference 150) or incomplete origin (local preference 100).
+
+
+---------------------------------------------------------------------------------------------------
+BGP MED (Multi-Exit Discriminator)
+---------------------------------------------------------------------------------------------------
+- The Multi-Exit Discriminator (MED) attribute in BGP is used to influence the selection of the best path for inbound traffic from different autonomous systems (AS). It is a non-transitive, optional attribute that provides a hint to external neighbors about the preferred path into an AS.
+
+Key Characteristics of MED:
+1. Lower is Better: Routes with a lower MED value are preferred over routes with a higher value.
+2. Non-Transitive: The MED attribute is not propagated beyond the neighboring AS. It is only shared between directly connected ASes.
+3. Optional: The use of the MED attribute is optional and can be configured based on routing policies.
+
+Why Use MED?
+- To influence the selection of the best path for inbound traffic from different ASes.
+- To provide a preferred entry point into an AS when multiple entry points exist.
+- To implement routing policies that control the flow of inbound traffic.
+
+How to Configure MED:
+- The MED attribute can be set using route maps or directly in the BGP neighbor configuration.
+
+Example Configuration:
+Suppose you have two BGP neighbors, and you want to set the MED value for routes advertised to neighbor 192.168.1.1.
+
+Router Configuration:
+router bgp 100
+ neighbor 192.168.1.1 remote-as 200
+ neighbor 192.168.1.1 route-map SET_MED out
+
+route-map SET_MED permit 10
+ set metric 50
+route-map SET_MED permit 20
+ set metric 100
+
+Verification:
+To verify the MED configuration and the selected routes, use the following commands:
+
+Check BGP Routes:
+show ip bgp
+
+Example Output:
+Router# show ip bgp
+Network          Next Hop            Metric LocPrf Weight Path
+*> 10.1.1.0/24   192.168.1.1             50    100      0 200 i
+*  10.1.1.0/24   192.168.1.2            100    100      0 300 i
+
+In this example, the route learned from 192.168.1.1 has a lower MED value (50) and is preferred over the route learned from 192.168.1.2 (MED 100).
+
+
+
+`-------------------------------------------end of notes on selection of the best path--------------------------------------------------------
+
+
+
+---------------------------------------------------------------------------------------------------
+BGP Community Attribute
+---------------------------------------------------------------------------------------------------
+The BGP community attribute is a powerful and flexible way to group routes and apply routing policies 
+based on those groups. It is an optional transitive attribute used to tag routes with specific information.
+
+---
+
+### Key Characteristics:
+1. **Grouping Routes**: Allows you to tag and manage routes as part of a logical group.
+2. **Transitive**: The community attribute is passed to other BGP peers.
+3. **Multiple Communities**: A single route can belong to multiple communities for more complex policies.
+
+---
+
+### Why Use BGP Community?
+- To group routes for easier management.
+- To apply routing policies consistently across groups of routes.
+- To influence routing decisions based on tagged communities.
+- To simplify the application of routing policies in large networks.
+
+---
+
+### Common Community Values:
+1. **Internet**: Routes with this community tag are advertised to all BGP peers.
+2. **No-Advertise**: Routes with this community tag are NOT advertised to any BGP peers.
+3. **No-Export**: Routes with this community tag are NOT advertised outside the local AS.
+
+---
+
+### Configuration Steps
+
+#### 1. Define Community Values Globally
+You can classify and match routes using community lists.
+
+**Example:**
+`Global Configuration:`
+ip community-list standard GLOBAL-OUT permit 100:100
+ip community-list standard GLOBAL-IN permit 200:200
+
+`Router Configuration:`
+router bgp 100
+ neighbor 192.168.1.1 remote-as 200
+ neighbor 192.168.1.1 send-community
+ neighbor 192.168.1.1 route-map SET_COMMUNITY out
+
+`Route Map Configuration:`
+route-map SET_COMMUNITY permit 10
+ match ip address prefix-list MY-NETWORK
+ set community 100:1
+
+`Prefix List Configuration:`
+ip prefix-list MY-NETWORK permit 10.10.10.0/24
+
+`Verification:`
+show ip bgp
+output:
+Network          Next Hop            Metric LocPrf Weight Path
+*> 10.10.10.0/24 192.168.1.1              0    100      0 200 i
+     Community: 100:1
+
+show route-map
+Output:
+route-map SET_COMMUNITY, permit, sequence 10
+     Match clauses:
+          ip address (prefix-list): MY-NETWORK
+     Set clauses:
+          community 100:1
+     Policy routing matches: 0
+
+--------------------------------------------
+### BGP Community No-Advertise
+--------------------------------------------
+- The `no-advertise` community attribute is used to prevent routes from being advertised to any BGP peers. This is useful for controlling the propagation of specific routes within the network.
+
+### Configuration Example
+
+#### Step 1: Define the Community List
+Create a community list to match the routes that should not be advertised.
+
+ip community-list standard NO-ADVERTISE permit 65535:65282
+
+#### Step 2: Apply the Community Attribute
+Use a route map to set the `no-advertise` community attribute on the desired routes.
+
+route-map SET_NO_ADVERTISE permit 10
+     match ip address prefix-list NO-ADVERTISE-ROUTES
+     set community no-advertise
+
+ip prefix-list NO-ADVERTISE-ROUTES permit 10.10.10.0/24
+
+#### Step 3: Apply the Route Map to the BGP Neighbor
+Apply the route map to the BGP neighbor in the outbound direction.
+
+router bgp 100
+     neighbor 192.168.1.1 remote-as 200
+     neighbor 192.168.1.1 route-map SET_NO_ADVERTISE out
+     neighbor 192.168.1.1 send-community
+
+#### Verification
+Verify that the routes are not being advertised to the BGP neighbor.
+
+show ip bgp neighbors 192.168.1.1 advertised-routes
+
+
+--------------------------------------------
+### BGP Community No-Export
+--------------------------------------------
+- The `no-export` community attribute is used to prevent routes from being advertised outside the local AS. This is useful for controlling the propagation of specific routes to external BGP peers.
+
+### Configuration Example
+
+#### Step 1: Define the Community List
+Create a community list to match the routes that should not be exported.
+
+ip community-list standard NO-EXPORT permit 65535:65281
+
+#### Step 2: Apply the Community Attribute
+Use a route map to set the `no-export` community attribute on the desired routes.
+
+route-map SET_NO_EXPORT permit 10
+ match ip address prefix-list NO-EXPORT-ROUTES
+ set community no-export
+
+ip prefix-list NO-EXPORT-ROUTES permit 10.10.10.0/24
+
+#### Step 3: Apply the Route Map to the BGP Neighbor
+Apply the route map to the BGP neighbor in the outbound direction.
+
+router bgp 100
+ neighbor 192.168.1.1 remote-as 200
+ neighbor 192.168.1.1 route-map SET_NO_EXPORT out
+ neighbor 192.168.1.1 send-community
+
+#### Verification
+Verify that the routes are not being advertised to external BGP peers.
+
+show ip bgp neighbors 192.168.1.1 advertised-routes
+
+
+---------------------------------------------------------------------------------------------------
+Preventing Transit AS in BGP using Filter List
+---------------------------------------------------------------------------------------------------
+- Preventing a network from becoming a transit AS in BGP involves ensuring that the network does not advertise routes learned from one external BGP (eBGP) peer to another eBGP peer. This can be achieved using filter lists to control the advertisement of routes.
+
+### Why Prevent Transit AS?
+1. **Security**: Prevents the network from inadvertently becoming a transit path for other ASes.
+2. **Control**: Maintains control over the routing policies and traffic flow within the network.
+3. **Resource Management**: Reduces the load on network resources by limiting the number of routes advertised.
+
+### Configuration Steps
+
+#### Step 1: Define AS Path Access List
+Create an AS path access list to match the AS paths that should not be advertised.
+
+Example1:
+**Step 1**: Define AS-Path Access List
+Create an AS-path access list to filter routes based on the AS path.
+
+**ip as-path access-list 10 deny ^300$**     # Deny routes coming from AS 300 only
+**ip as-path access-list 10 permit .*$**        # Allow all other routes (any AS path)
+
+- deny ^300$: Denies routes that have only AS 300 in their AS path.
+- permit .*$: Permits all other routes, regardless of the AS path.
+
+**Step 2**: Create a Route Map Using the AS-Path Access List
+Now, create a route map to apply the AS-path filter.
+**route-map BLOCK_TRANSIT deny 10
+ match as-path 10    # Match the AS-path access list (deny AS 300)
+ route-map BLOCK_TRANSIT permit 20**   # Allow all other routes
+
+# Apply the route map to the incoming routes from your BGP neighbor
+router bgp 100
+**neighbor 10.1.1.2 remote-as 200
+ neighbor 10.1.1.2 route-map BLOCK_TRANSIT in**  # Apply the filter to incoming updates
+
+
+Example2:
+**ip prefix-list DENY_TRANSIT seq 5 deny 0.0.0.0/0 le 32   # Block all default and other routes
+  ip prefix-list ALLOW_DIRECT_ROUTES seq 10 permit 192.168.1.0/24   # Allow your network to be advertised
+**
+#### Step 2: Apply Filter List to BGP Neighbor
+Use a filter list to apply the AS path access list to the BGP neighbor in the outbound direction.
+**route-map FILTER_TRANSIT deny 10
+ match ip address prefix-list DENY_TRANSIT   # Block the undesired routes
+ route-map FILTER_TRANSIT permit 20   # Allow all other routes
+ match ip address prefix-list ALLOW_DIRECT_ROUTES
+ **
+ **# Apply the route map to the incoming BGP updates from the neighbor
+ router bgp 100
+ neighbor 10.1.1.2 remote-as 200
+ neighbor 10.1.1.2 route-map FILTER_TRANSIT in   # Preventing transit routes from AS 200
+
+**Explanation**:
+- Prefix List DENY_TRANSIT: Denies the advertisement of default routes or any routes that are not explicitly in your AS (using 0.0.0.0/0 le 32).
+- Prefix List ALLOW_DIRECT_ROUTES: Permits routes that are directly within your network (e.g., 192.168.1.0/24).
+- Route Map FILTER_TRANSIT: First, the route map denies any transit routes from AS 200 by using the prefix list DENY_TRANSIT. Then, it permits all other routes (such as direct routes in your AS).
+
+#### Verification
+Verify that the routes are not being advertised to the BGP neighbor.
+
+# Verify the BGP table to check received routes and see if the filter is applied
+show ip bgp
+
+# Check the route map and its application
+show route-map FILTER_TRANSIT
+
+
+Example Output:
+
+# Show BGP table
+*> 192.168.1.0/24 10.1.1.2              0    100      0 200 i
+*> 0.0.0.0/0 10.1.1.3               0    100      0 300 i   # Blocked due to filter
+
+
+---------------------------------------------------------------------------------------------------
+Preventing Transit AS in BGP using No-Export Community
+---------------------------------------------------------------------------------------------------
+- The `no-export` community attribute is used to prevent routes from being advertised outside the local AS. This ensures that the network does not become a transit AS for other networks.
+
+### Why Use No-Export Community?
+1. **Security**: Prevents the network from inadvertently becoming a transit path for other ASes.
+2. **Control**: Maintains control over the routing policies and traffic flow within the network.
+3. **Resource Management**: Reduces the load on network resources by limiting the number of routes advertised.
+
+### Configuration Steps
+
+#### Step 1: Define the Community List
+Create a community list to match the routes that should not be exported.
+
+ip community-list standard NO-EXPORT permit 65535:65281
+
+#### Step 2: Apply the Community Attribute
+Use a route map to set the `no-export` community attribute on the desired routes.
+
+route-map SET_NO_EXPORT permit 10
+ match ip address prefix-list NO-EXPORT-ROUTES
+ set community no-export
+
+ip prefix-list NO-EXPORT-ROUTES permit 10.10.10.0/24
+
+#### Step 3: Apply the Route Map to the BGP Neighbor
+Apply the route map to the BGP neighbor in the outbound direction.
+
+router bgp 100
+ neighbor 192.168.1.1 remote-as 200
+ neighbor 192.168.1.1 route-map SET_NO_EXPORT out
+ neighbor 192.168.1.1 send-community
+
+#### Verification
+Verify that the routes are not being advertised to external BGP peers.
+
+show ip bgp neighbors 192.168.1.1 advertised-routes
+
+
+---------------------------------------------------------------------------------------------------
+Preventing Transit AS in BGP using Distribute List
+---------------------------------------------------------------------------------------------------
+- Preventing a network from becoming a transit AS in BGP involves ensuring that the network does not advertise routes learned from one external BGP (eBGP) peer to another eBGP peer. This can be achieved using distribute lists to control the advertisement of routes.
+
+### Why Prevent Transit AS?
+1. **Security**: Prevents the network from inadvertently becoming a transit path for other ASes.
+2. **Control**: Maintains control over the routing policies and traffic flow within the network.
+3. **Resource Management**: Reduces the load on network resources by limiting the number of routes advertised.
+
+### Configuration Steps
+
+#### Step 1: Define Prefix List
+Create a prefix list to match the routes that should not be advertised.
+
+ip access-list standard BLOCK_FROM_AS200
+ deny 10.10.10.0 0.0.0.255      # Block this specific route learned from AS 200
+ permit any                     # Allow all other routes
+
+ip access-list standard BLOCK_FROM_AS300
+ deny 20.20.20.0 0.0.0.255      # Block this specific route learned from AS 300
+ permit any                     # Allow all other routes
+
+#### Step 2: Apply Distribute List to BGP Neighbor
+Use a distribute list to apply the prefix list to the BGP neighbor in the outbound direction.
+
+router bgp 100
+ neighbor 10.1.1.2 remote-as 200
+ neighbor 10.1.1.2 distribute-list BLOCK_FROM_AS300 out   # Block routes learned from AS 300
+
+ neighbor 10.1.1.3 remote-as 300
+ neighbor 10.1.1.3 distribute-list BLOCK_FROM_AS200 out   # Block routes learned from AS 200
+
+#### Verification
+Verify that the routes are not being advertised to the BGP neighbor.
+
+show ip bgp
+
+# Verify distribute list configuration
+show ip bgp neighbors 10.1.1.2 advertised-routes
+show ip bgp neighbors 10.1.1.3 advertised-routes
+
+
+Example Output:
+Router# show ip bgp
+Network          Next Hop            Metric LocPrf Weight Path
+*> 10.10.10.0/24 10.1.1.2                 0    100      0 200 i
+*> 20.20.20.0/24 10.1.1.3                 0    100      0 300 i
+
+
+
+
+---------------------------------------------------------------------------------------------------
+BGP Peer Groups
+---------------------------------------------------------------------------------------------------
+- BGP peer groups are used to simplify the configuration and management of BGP neighbors that share common policies. By grouping neighbors with similar configurations, you can apply the same settings to all members of the group, reducing configuration complexity and improving consistency.
+
+### Why Use BGP Peer Groups?
+1. **Simplify Configuration**: Reduces the need to configure the same settings for multiple neighbors individually.
+2. **Consistency**: Ensures that all members of the peer group have the same configuration, reducing the risk of configuration errors.
+3. **Efficiency**: Improves the efficiency of BGP updates by sending the same update to all members of the peer group simultaneously.
+
+### Configuration Steps
+
+**Step 1: Define the Peer Group**
+Create a BGP peer group and configure the common settings for the group.
+
+router bgp 100
+ bgp log-neighbor-changes
+
+ # Create a peer group named "EXTERNAL_PEERS"
+ neighbor EXTERNAL_PEERS peer-group
+
+ # Common settings for the peer group
+ neighbor EXTERNAL_PEERS remote-as 200
+ neighbor EXTERNAL_PEERS update-source Loopback0
+ neighbor EXTERNAL_PEERS send-community
+
+
+**Step 2: Add Neighbors to the Peer Group**
+Assign individual neighbors to the peer group.
+
+ # Assign neighbors to the peer group
+ neighbor 192.168.1.2 peer-group EXTERNAL_PEERS
+ neighbor 192.168.1.3 peer-group EXTERNAL_PEERS
+ neighbor 192.168.1.4 peer-group EXTERNAL_PEERS
+
+
+**Step 3: Apply Additional Settings (Optional)**
+Apply any additional settings specific to individual neighbors if needed.
+
+neighbor 192.168.1.1 description "Primary Link"
+neighbor 192.168.1.2 description "Backup Link"
+
+### Verification
+Verify the peer group configuration and the status of the BGP neighbors.
+
+show ip bgp summary
+show ip bgp neighbors
+
+Example Output:
+Router# show ip bgp summary
+Neighbor        V    AS    MsgRcvd MsgSent  State/PfxRcd
+192.168.1.1     4   200       10       10      1
+192.168.1.2     4   200       10       10      1
+
+Router# show ip bgp neighbors
+BGP neighbor is 192.168.1.1,  remote AS 200, external link
+     BGP version 4, remote router ID 2.2.2.2
+     BGP state = Established, up for 00:10:21
+     Peer group is EXTERNAL_PEERS
+BGP neighbor is 192.168.1.2,  remote AS 200, external link
+     BGP version 4, remote router ID 2.2.2.3
+     BGP state = Established, up for 00:10:21
+     Peer group is EXTERNAL_PEERS
+
+
+---------------------------------------------------------------------------------------------------
+BGP Route Reflector Lab
+---------------------------------------------------------------------------------------------------
+- A BGP route reflector is used to reduce the number of iBGP peer connections required in a full-mesh topology. It allows iBGP routers to advertise routes learned from one iBGP peer to another iBGP peer, overcoming the iBGP split horizon rule.
+
+### Why Use Route Reflectors?
+1. **Scalability**: Reduces the number of iBGP sessions required in large networks.
+2. **Simplified Configuration**: Eases the configuration and management of iBGP peers.
+3. **Efficient Route Propagation**: Ensures efficient propagation of routes within the AS.
+
+**Lab Setup**
+
+###Objective:
+Configure a BGP Route Reflector in an AS to simplify the iBGP topology.
+
+###Topology:
+AS: 100
+Router1 (RR): 192.168.1.1
+Router2 (Client1): 192.168.1.2
+Router3 (Client2): 192.168.1.3
+Router4 (Non-Client): 192.168.1.4
+
+
+### Configuration Steps
+
+1. Configure Loopback Interfaces
+Each router will use its loopback interface as the BGP update source.
+
+Router1 (RR):
+interface Loopback0
+ ip address 192.168.1.1 255.255.255.255
+
+Router2 (Client1):
+interface Loopback0
+ ip address 192.168.1.2 255.255.255.255
+
+Router3 (Client2):
+interface Loopback0
+ ip address 192.168.1.3 255.255.255.255
+
+Router4 (Non-Client):
+interface Loopback0
+ ip address 192.168.1.4 255.255.255.255
+
+2. Configure iBGP on All Routers
+
+Router1 (RR):
+router bgp 100
+ bgp log-neighbor-changes
+ neighbor 192.168.1.2 remote-as 100
+ neighbor 192.168.1.2 update-source Loopback0
+ neighbor 192.168.1.2 route-reflector-client
+
+ neighbor 192.168.1.3 remote-as 100
+ neighbor 192.168.1.3 update-source Loopback0
+ neighbor 192.168.1.3 route-reflector-client
+
+ neighbor 192.168.1.4 remote-as 100
+ neighbor 192.168.1.4 update-source Loopback0
+
+Router2 (Client1):
+router bgp 100
+ bgp log-neighbor-changes
+ neighbor 192.168.1.1 remote-as 100
+ neighbor 192.168.1.1 update-source Loopback0
+
+ neighbor 192.168.1.3 remote-as 100
+ neighbor 192.168.1.3 update-source Loopback0
+
+Router3 (Client2):
+router bgp 100
+ bgp log-neighbor-changes
+ neighbor 192.168.1.1 remote-as 100
+ neighbor 192.168.1.1 update-source Loopback0
+
+ neighbor 192.168.1.2 remote-as 100
+ neighbor 192.168.1.2 update-source Loopback0
+
+Router4 (Non-Client):
+router bgp 100
+ bgp log-neighbor-changes
+ neighbor 192.168.1.1 remote-as 100
+ neighbor 192.168.1.1 update-source Loopback0
+
+3. Advertise Networks
+
+Router2 (Client1):
+router bgp 100
+ network 10.10.10.0 mask 255.255.255.0
+
+Router3 (Client2):
+router bgp 100
+ network 20.20.20.0 mask 255.255.255.0
+
+**Verification**
+show ip bgp neighbors
+show ip bgp
+show ip route
+
+
+
+----------------------------------------------------
+---------------------------------------------------------------------------------------------------
+BGP Confederations
+---------------------------------------------------------------------------------------------------
+- BGP confederations are used to divide a large autonomous system (AS) into smaller, more manageable sub-ASes. This helps reduce the complexity of iBGP full-mesh requirements and improves scalability.
+
+### Why Use BGP Confederations?
+1. **Scalability**: Reduces the number of iBGP sessions required in large networks.
+2. **Simplified Management**: Eases the configuration and management of BGP peers.
+3. **Improved Performance**: Enhances the performance of BGP route processing.
+
+### Configuration Steps
+
+#### Step 1: Define the Confederation
+Configure the BGP confederation identifier and the sub-AS numbers.
+
+Router1 (Sub-AS 65001):
+router bgp 65001
+ bgp confederation identifier 100
+ bgp confederation peers 65002 65003
+
+Router2 (Sub-AS 65002):
+router bgp 65002
+ bgp confederation identifier 100
+ bgp confederation peers 65001 65003
+
+Router3 (Sub-AS 65003):
+router bgp 65003
+ bgp confederation identifier 100
+ bgp confederation peers 65001 65002
+
+#### Step 2: Configure iBGP within Sub-AS
+Establish iBGP sessions within each sub-AS.
+
+Router1 (Sub-AS 65001):
+router bgp 65001
+ neighbor 192.168.1.2 remote-as 65001
+ neighbor 192.168.1.2 update-source Loopback0
+
+Router2 (Sub-AS 65002):
+router bgp 65002
+ neighbor 192.168.2.2 remote-as 65002
+ neighbor 192.168.2.2 update-source Loopback0
+
+Router3 (Sub-AS 65003):
+router bgp 65003
+ neighbor 192.168.3.2 remote-as 65003
+ neighbor 192.168.3.2 update-source Loopback0
+
+#### Step 3: Configure eBGP between Sub-ASes
+Establish eBGP sessions between the sub-ASes.
+
+Router1 (Sub-AS 65001):
+router bgp 65001
+ neighbor 192.168.2.1 remote-as 65002
+ neighbor 192.168.3.1 remote-as 65003
+
+Router2 (Sub-AS 65002):
+router bgp 65002
+ neighbor 192.168.1.1 remote-as 65001
+ neighbor 192.168.3.2 remote-as 65003
+
+Router3 (Sub-AS 65003):
+router bgp 65003
+ neighbor 192.168.1.1 remote-as 65001
+ neighbor 192.168.2.1 remote-as 65002
+
+### Verification
+Verify the confederation configuration and the status of the BGP neighbors.
+
+show ip bgp summary
+show ip bgp neighbors
+
+Example Output:
+Router# show ip bgp summary
+Neighbor        V    AS    MsgRcvd MsgSent  State/PfxRcd
+192.168.1.1     4  65001       10       10      1
+192.168.2.1     4  65002       10       10      1
+192.168.3.1     4  65003       10       10      1
+
+Router# show ip bgp neighbors
+BGP neighbor is 192.168.1.1,  remote AS 65001, internal link
+     BGP version 4, remote router ID 1.1.1.1
+     BGP state = Established, up for 00:10:21
+BGP neighbor is 192.168.2.1,  remote AS 65002, external link
+     BGP version 4, remote router ID 2.2.2.2
+     BGP state = Established, up for 00:10:21
+BGP neighbor is 192.168.3.1,  remote AS 65003, external link
+     BGP version 4, remote router ID 3.3.3.3
+     BGP state = Established, up for 00:10:21
+
+
+
+
+-------------------------
+Interview Q&A BGP
+-------------------------
+Q1. Is BGP an Interior or Exterior Routing Protocol?
+
+Ans – It is an Exterior Gateway Routing Protocol, used to Exchange routing information for the internet and is the protocol used between ISP which are having different Autonomous System numbers.
+
+Q2. What do you mean by an Autonomous system and an autonomous system number (ASN)?
+
+An autonomous system (AS) is a collection of connected Internet Protocol (IP) routing prefixes under the control of one or more network operators on behalf of a single administrative entity or domain, that presents a common and clearly defined routing policy to the Internet. AS numbers are globally unique numbers that are used to identify ASes, and which enable an AS to exchange exterior routing information between neighboring ASes. An AS is a connected group of IP networks that adhere to a single and clearly defined routing policy. Each AS is assigned an autonomous system number (ASN), for use in Border Gateway Protocol (BGP) routing.
+
+There are a limited number of available AS numbers. Therefore, it is important to determine which sites require unique AS numbers and which do not. The IANA also maintains a registry of ASNs which are reserved for private use (and should therefore not be announced to the global Internet). Sites that do not require a unique AS number should use one or more of the AS numbers reserved for private use, which are in the range from 64512 to 65535.
+
+
+Q3. What happens in BGP when we disable or enable the auto-summary?
+
+In the recent Cisco IOS releases, auto-summary is disabled by default. When auto-summary is enabled, it summarizes the locally originated BGP networks to their classful boundaries.
+
+Once Auto-summary is disabled, the routes introduced locally into the BGP table are not summarized to their classful boundaries.
+
+
+Q4. What is the BGP path selection criteria/Algorithm?
+
+The following parameters are followed for BGP's path selection:
+
+1.Prefer the highest local-preference value.
+
+2.Prefer the shortest AS-path length.
+
+3.Prefer the lowest origin value.
+
+4.Prefer the lowest MED value.
+
+5.Prefer routes learned from an EBGP peer over an IBGP peer.
+
+6.Prefer best exit from AS.
+
+7.For EBGP-received routes, prefer the current active route.
+
+8.Prefer routes from the peer with the lowest Router ID.
+
+9.Prefer paths with the shortest cluster length.
+
+Prefer routes from the peer with the lowest peer IP address.
+
+
+Q5. Which layer does BGP work on?
+
+BGP is an application layer protocol which is Layer 7 of OSI model.
+
+
+Q6. What protocol and port number does BGP use for neighborship?
+
+Ans : BGP uses TCP-179 port for establishing neighborship.
+
+
+Q7. How do I configure BGP with the use of a loopback address?
+
+Ans – If you do not have direct connectivity between routers then you can use loopbacks for establishing the BGP connectivity. However, this option is only when you are using EBGP and you need to use “ebgp multihop” commands.
+
+Make sure that loopback IPs are reachable from each router, else use static routes.
+
+Additionally, while forming neighborship, you need to define the source using the command “neighbor 2.2.2.2 update-source Loopback0”. This command specifies that the TCP connection with BGP peer should be established using loopback interface.
+
+For directly connected neighbors, we do not need to use the above command.
+
+
+Q8. What does a next hop of 0.0.0.0 mean in the output of “show ip bgp” command?
+
+Ans : The next hop of 0.0.0.0 means that this network originated on this router or router has non-BGP routes to the network.
+
+Q9. How can I verify if a BGP router announces its BGP networks and propagates them to the global BGP mesh?
+
+Ans. Below are the commands to verify the IP blocks are announced to BGP neighbors ISP:
+
+“show ip bgp neighbors [address] advertised-routes” for sent networks
+
+“show ip bgp neighbors [address] routes” for received networks
+
+
+Q10. Do external BGP (eBGP) sessions modify the next hop?
+
+Yes, Routes advertised to eBGP peers will have Next-Hop attribute changed to eBGP routers IP address.
+
+
+Q11. How much memory should I have in my router to receive the complete BGP routing table from my ISP?
+
+Cisco recommendation is to have a minimum of 512 MB of RAM in the router to store a complete global BGP routing table from one BGP peer.
+
+
+Q12. What is the way to know which Cisco IOS software release supports a particular BGP feature?
+
+Use Software Research (registered customers only) to quickly find which Cisco IOS software release supports your feature.
+
+Link to “Software Research” is - https://software.cisco.com/selection/research.html
+
+Q13. Do external BGP (eBGP) sessions between confederations modify the next hop?
+
+No, eBGP sessions between confederation AS do not modify the next hop attribute.
+
+Q14. Is there any special configuration needed on Cisco PIX/ASA firewall to allow BGP sessions?
+
+Ans : If you want to from BGP Neighborship between Routers which are having Cisco ASA/PIX sitting in between, then you need to allow TCP-179.
+
+If you are using MD5 for secure BGP neighborship, then we need to enable option-19 on Cisco ASA/PIX.
+
+We also need to disable the TCP Sequence Number Randomization for the specific BGP traffic class. See the steps below
+
+This is a TCP extension used to carry an MD5 digest in a TCP segment, thus allowing BGP to work securely with MD5 and enhance its security. The Cisco ASA firewall removes this TCP option from packets thus creates a problem in BGP sessions between two endpoints that use MD5 authentication in BGP.
+
+A. Match the BGP traffic with an ACL:
+
+access-list bgp-neighbor extended permit tcp host 20.1.1.1 host 20.2.2.2 eq bgp
+access-list bgp-neighbor extended permit tcp host 20.2.2.2 host 20.1.1.1 eq bgp
+
+B. Allow TCP option 19 with a TCP Map.
+
+tcp-map ALLOW-TCP-19
+tcp-options range 19 19 allow
+
+C. Create a class map to match the BGP Traffic using the ACL above.
+
+class-map bgp-class
+match access-list bgp-neighbor
+
+
+
+D. Use the Global Policy to apply all the actions:
+
+policy-map global_policy
+class bgp-class
+set connection random-sequence-number disable
+set connection advanced-options ALLOW-TCP-19
+
+
+Q15. When and how should I reset a BGP session?
+
+Traditional approach was to tear down the BGP session with single neighbor/all Neighbors/peer group -
+
+R1#clear ip bgp {* | neighbor ip | peer-group}
+
+Below Outbound Soft Reconfiguration Re-sends complete BGP Table -
+
+R1#clear ip bgp {neighbor ip} soft out
+
+Below Inbound Soft Reconfiguration Re-sends complete BGP Table -
+
+R1#clear ip bgp {neighbor ip} soft in
+
+Another option is to request a neighbor to resend routing information, without bringing a session down -
+
+R1#clear ip bgp {* | neighbor ip | peer-group} in
+
+
+Q16. Does the route reflector change the next hop attribute of a reflected prefix?
+
+By default, the next hop attribute is not changed when a prefix is reflected by route reflector.
+
+
+
+Q17. What are the ways to configure BGP to provide load sharing and redundancy in my network?
+
+Below are the choices in BGP while load sharing in the network –
+
+a) When equal cost multiple links between eBGP neighbors
+
+- Using static routing for Loopback Address as a BGP Neighbor.
+
+b) When Dual-Homed to One Internet Service Provider (ISP) Through a Single Local Router
+
+- Using maximum-paths command
+
+c) Load Sharing When Dual-Homed to One ISP Through Multiple Local Routers
+
+- Using as-path prepend
+
+d) Load Sharing When Multihomed to Two ISPs Through a Single Local Router
+
+- Using weight and selective prefix receive/advertisement
+
+- Using Local preference and as-path prepend
+
+
+
+Q18. Why do I see the same route twice from the same peer in BGP?
+
+Two entries are seen due to soft-reconfiguration configured. Both the unmodified path and the modified path, which depends on the inbound policy, if permitted, are stored in the path table for the prefix.
+
+
+Q19. What is the way to set the Multi Exit Discriminator (MED) value on prefixes advertised to external BGP (eBGP) neighbors to match the Interior Gateway Protocol (IGP) next hop metric?
+
+The set metric-type internal route-map configuration command causes BGP to advertise a MED that corresponds to the IGP metric associated with the next hop of the route.
+
+
+Q20. Can we establish BGP neighborship between Routers having different subnets?
+
+Ans :
+
+Yes, BGP neighborship can be formed between Routers across different subnets. BGP requires TCP-179 connection across Routers which may be on same subnet or different subnets. You need to have IP connectivity between Routers and require “ebgp multihop” command.
+
+eBGP (external BGP) by default requires two Cisco IOS routers to be directly connected to each other to establish a neighbor adjacency. This is because eBGP routers use a TTL of one for their BGP packets. When the BGP neighbor is more than one hop away, the TTL value will decrement to 0 and it will be discarded.
+
+When these two routers are not directly connected then we can setup neighborship using “ebgp multihop” command.
+
+e.g. R1(config-router)#neighbor 10.1.1.2 ebgp-multihop 2
+
+
+Q21. What are the commands to setup BGP?
+
+Ans router bgp <as-number>
+
+neighbor <ip-address> remote-as <remote-as-number>
+
+eg
+
+R1(config)#router bgp 100
+
+R1(config)#neighbor 10.1.1.2 remote-as 200
+
+Exit
+
+R2(config)#router bgp 200
+
+R2(config)#neighbor 10.1.1.1 remote-as 100
+
+Exit
+
+
+
+Q22. What are communities in BGP? What are the well-known communities of the BGP community attribute?
+
+
+
+Ans : The main purpose of BGP enabled routers is to advertise prefixes to other routers. These prefixes can be from several different address families, such as IPv4 and VPNv4.
+
+When advertising a prefix, BGP attaches extra information, called attributes. BGP uses these attributes to select the best path.
+
+Communities create routing policies between peers. By tagging prefixes with communities, we tell the peer to handle the prefixes in a special way.
+
+BGP can include more information with each prefix, in the form of Community Strings. A community string is a number value that the peer uses like a tag.
+
+
+
+Below are well known BGP community attributes –
+
+Local-AS: It does not advertise the prefix outside of the sub-AS (this one is used for BGP confederations).
+
+Internet: advertise the prefix to all BGP neighbors.
+
+No-Export: It does not advertise the prefix to any eBGP neighbors.
+
+No-Advertise: It does not advertise the prefix to any BGP neighbors.
+
+
+
+Q23. Do iBGP sessions modify the next hop?
+
+iBGP sessions preserve the next hop attribute learned from eBGP peers. Therefore, it is important to have an internal route to the next hop. The BGP route is otherwise unreachable. To make sure you can reach the eBGP next hop, include the network that the next hop belongs to in the IGP or issue the next-hop-self neighbor command to force the router to advertise itself, rather than the external peer, as the next hop.
+
+
+
+Q24. How can I announce a prefix conditionally to one ISP only when I lose the connection to my primary ISP?
+
+BGP advertises routes from its BGP table to external peers by default. The BGP conditional advertisement feature provides additional control of route advertisement depending on the existence of other prefixes in the BGP table. Normally, routes are propagated regardless of the existence of a different path.
+
+The BGP conditional advertisement feature uses the non-exist-map and advertise-map configuration commands to track routes by the route prefix. If a route prefix is not present in the non-exist-map command, the route specified by the advertise-map command is announced.
+
+
+
+Q25. What is the default BGP ConnectRetry timer?
+
+The default BGP ConnectRetry timer is 120 seconds. Only after this time passes does the BGP process check to see if the passive TCP session is established. If the passive TCP session is not established, then the BGP process starts a new active TCP attempt to connect to the remote BGP speaker. During this idle 120 seconds of the ConnectRetry timer, the remote BGP peer can establish a BGP session to it.
+
+
+
+Q26. In external BGP (eBGP) sessions, which IP address is sent as the next hop?
+
+In eBGP peering, the next hop is the IP address of the neighbor that announces the route.
+
+
+
+Q27. What are the benefits of configuring BGP peer groups?
+
+Below are the key benefits which can be reaped out from BGP peer groups –
+
+Reduction of the resource of BGP devices when it makes the updates to the BGP neighbors.
+
+Reduction in amount of configuration which is requires to be done on BGP enabled device.
+
+Configuration becomes simple and easy
+
+
+
+Q28. What is synchronization, and how does it influence BGP routes installed in the IP routing table?
+
+If your AS passes traffic from another AS to a third AS, BGP should not advertise a route before all routers in your AS learn about the route via IGP. BGP waits until IGP propagates the route within the AS and then advertises it to external peers. A BGP router with synchronization enabled does not install iBGP learned routes into its routing table if it is not able to validate those routes in its IGP.
+
+BGP synchronization rule - Do not advertise a route learned from IBGP to an external neighbor unless a matching route is learned from an IGP. This was an old rule. However, with newer Cisco IOS 12.2(8)T and later, this feature is off by default.
+
+
+
+Q29. Why do we use the command “BGP best-path as-path ignore” on Cisco routers?
+
+By default, BGP prefers the path with the shortest AS_PATH (autonomous system). This step is skipped if we configure the command "bgp best-path as-path ignore”.
+
+
+
+Q30. What does RIB-Failure mean in the output of “show ip bgp” command?
+
+RIB-Failure in “show ip bgp” command may be due to one of the following reasons -
+
+Route with better administrative distance already present in IGP. e.g. static route is already present.
+
+The number of routes in VPN routing/forwarding (VRF) exceeds the route-limit configured under the VRF instance i.e. due to memory failure.
