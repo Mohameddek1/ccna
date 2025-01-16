@@ -1,0 +1,32 @@
+Network Layer
+=============
+
+The network layer is the third layer of the OSI (Open Systems Interconnection) model. It is responsible for the delivery of packets from the source host to the destination host across multiple networks. The primary functions of the network layer include:
+
+1. **Routing**: Determines the best path for data to travel from source to destination.
+2. **Logical Addressing**: Assigns IP addresses to devices and ensures that each device has a unique address.
+3. **Packet Forwarding**: Moves packets from the source to the destination using routers and other network devices.
+4. **Fragmentation and Reassembly**: Breaks down large packets into smaller fragments for transmission and reassembles them at the destination.
+
+Key Protocols
+-------------
+
+- **IP (Internet Protocol)**: The primary protocol for routing and addressing packets.
+- **ICMP (Internet Control Message Protocol)**: Used for error reporting and diagnostic functions.
+- **ARP (Address Resolution Protocol)**: Resolves IP addresses to MAC addresses.
+- **RIP (Routing Information Protocol)**: A distance-vector routing protocol.
+- **OSPF (Open Shortest Path First)**: A link-state routing protocol.
+- **BGP (Border Gateway Protocol)**: A path-vector protocol used for inter-domain routing.
+
+Devices
+-------
+
+- **Routers**: Devices that forward data packets between computer networks.
+- **Layer 3 Switches**: Network switches that operate at the network layer and can perform routing functions.
+
+Conclusion
+----------
+
+The network layer plays a crucial role in ensuring that data is efficiently and accurately delivered across complex networks. Understanding its functions and protocols is essential for network design and troubleshooting.
+
+
