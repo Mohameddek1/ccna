@@ -3,13 +3,16 @@ OSI MODEL
 ---------------
 -is a conceptual framework that standardizes the functions of a communication system into seven layers
 
-1.Physical Layer (Layer 1) -_> Deals with the physical connection between devices e.g. cables, switches, and network interface cards (NICs)
+1.Physical Layer (Layer 1) --> Deals with the physical connection between devices e.g. cables, switches, and network interface cards (NICs)
 
 2.Data Link Layer (Layer 2) --> Responsible for node-to-node data transfer and error detection/correction.
 -Divided into two sublayers:
 i. MAC (Media Access Control): Controls how devices access the medium.
 ii. LLC (Logical Link Control): Manages frame synchronization and error checking.
 e.g. Ethernet, Wi-Fi (802.11), MAC addresses.
+- PDU comprises:
+i. Original data with TCP/UDP header
+ii. Network layer header 
 
 3.Network Layer (Layer 3) --> Manages data routing, addressing, and packet forwarding. Determines the best path for data to reach its destination
 e.g. IP (Internet Protocol), routers, IPv4, IPv6.
@@ -46,3 +49,74 @@ Layer 7 (Application): User interaction.
 
 
 
+- The Two Main Transport Layer Protocols:
+    - In computer networks, UDP (User Datagram Protocol) and TCP (Transmission Control Protocol) are the two primary transport layer protocols responsible for transmitting data over the internet. 
+
+=============================================
+Transmission Control Protocol (TCP)
+=============================================
+- TCP is a connection-oriented protocol that ensures reliable and ordered delivery of data. It is widely used in applications where data integrity is critical, such as web browsing, email, and file transfers.
+
+Key Features of TCP
+-------------------
+1. Reliable Data Transmission
+- TCP ensures data is received correctly and in order.
+- Uses acknowledgment (ACK) messages to confirm receipt.
+- Retransmits lost packets.
+
+2. Connection-Oriented
+- Establishes a connection before data transfer using the three-way handshake:
+i. Client sends a SYN (synchronize) request to the server.
+ii. Server responds with a SYN-ACK (synchronize-acknowledge).
+iii. Client replies with an ACK, establishing the connection.
+
+3. Error Detection and Correction
+- Uses checksums and retransmissions to ensure data accuracy.
+
+4. Ordered Data Transfer
+- Uses sequence numbers to ensure packets arrive in the correct order.
+
+5. Flow Control (Windowing Mechanism)
+- Adjusts the transmission rate based on network congestion.
+
+6. Congestion Control
+- Uses algorithms like Slow Start and Congestion Avoidance to prevent overwhelming the network.
+
+Use Cases of TCP
+-----------------
+1. Web browsing (HTTP/HTTPS)
+2. Email (SMTP, IMAP, POP3)
+3. File transfer (FTP, SFTP)
+4. Remote access (SSH, Telnet)
+
+
+
+=============================================
+User Datagram Protocol (UDP)
+=============================================
+- UDP is a connectionless, fast, and lightweight protocol that does not guarantee reliability or ordered delivery. It is used in applications where speed is more critical than accuracy.
+
+1. Fast and Efficient
+- No connection setup or acknowledgment process.
+- Low overhead, making it faster than TCP.
+
+2. Connectionless Communication
+- No prior handshake; packets are sent without establishing a connection.
+
+3. No Guaranteed Delivery
+- Packets may be lost, duplicated, or arrive out of order.
+
+4. No Error Correction
+- If data is lost, UDP does not retransmit it.
+
+5. Broadcast and Multicast Support
+- Suitable for real-time applications where multiple receivers need data.
+
+
+Use Cases of UDP
+-----------------
+1. Live video streaming (YouTube Live, Twitch)
+2. Online gaming (Call of Duty, Fortnite)
+3. VoIP calls (Skype, Zoom, WhatsApp Calls)
+4. DNS lookups (Domain Name System)
+5. IoT (Internet of Things) communications
