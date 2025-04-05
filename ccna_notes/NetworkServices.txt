@@ -1,0 +1,77 @@
+====================
+DHCP services
+====================
+- DHCP (Dynamic Host Configuration Protocol) is a network management protocol used to automate the process of configuring devices on IP networks. It allows devices to obtain IP addresses and other network configuration parameters automatically, reducing the need for manual configuration.
+- it also allocates other network settings such as subnet mask, default gateway, DNS servers, and more. This helps in reducing the administrative burden of managing IP addresses and ensures that devices can communicate effectively on the network.
+- **DHCP Server**: A server that manages the allocation of IP addresses and other network configuration parameters to clients.
+
+
+1. static ip - manual effort
+2. dynamic ip - automatic
+
+- DORA Process:
+  1. **Discover**: The client sends a DHCP Discover message to locate available DHCP servers.
+  2. **Offer**: The DHCP server responds with a DHCP Offer message, proposing an IP address and other configuration details.
+  3. **Request**: The client sends a DHCP Request message to the server, indicating acceptance of the offered parameters.
+  4. **Acknowledge**: The server sends a DHCP Acknowledgment message, confirming the assignment of the IP address and other settings.
+
+- port numbers:
+  - DHCP uses UDP (User Datagram Protocol) for communication.
+  - The client sends messages from port **68** and the server listens on port **67**.
+  - DHCP Discover and Request messages are sent from the client to the server on port 67, while Offer and Acknowledge messages are sent from the server to the client on port 68.
+
+
+--------------------------------------------------------
+✅ Step-by-Step DHCP Configuration on Cisco Router
+--------------------------------------------------------
+`🧱 Example Topology`
+Let’s assume your network is:
+Network: 192.168.10.0/24
+Default gateway: 192.168.10.1 (router interface)
+DNS server: 8.8.8.8
+IP range to assign: 192.168.10.100 - 192.168.10.150
+
+**🔧 1. Configure the Router Interface (Default Gateway)**
+```
+enable
+configure terminal
+interface FastEthernet0/0
+ ip address 192.168.10.1 255.255.255.0
+ no shutdown
+exit
+```
+**🖥️ 2. Configure the DHCP Pool**
+```
+ip dhcp pool MYPOOL
+ network 192.168.10.0 255.255.255.0
+ default-router 192.168.10.1
+ dns-server 8.8.8.8
+ domain-name local.lan
+ lease 7
+exit
+```
+- MYPOOL is the name of the DHCP pool (you can name it anything).
+- lease 7 = lease duration in days
+
+**🚫 3. Exclude IPs You Don’t Want Assigned**
+```
+ip dhcp excluded-address 192.168.10.1 192.168.10.99
+ip dhcp excluded-address 192.168.10.151 192.168.10.254
+```
+
+**📡 4. Enable DHCP on the Interface**
+- Make sure the interface that connects to clients is up:
+```
+interface FastEthernet0/0
+ no shutdown
+```
+
+**🔍 5. Verify DHCP Configuration**
+- Check bindings:
+```
+show ip dhcp binding
+```
+- Check DHCP server statistics:
+```
+show ip dhcp server statistics
+```
