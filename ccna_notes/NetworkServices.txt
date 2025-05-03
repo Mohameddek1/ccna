@@ -75,3 +75,754 @@ show ip dhcp binding
 ```
 show ip dhcp server statistics
 ```
+
+
+
+---------------------------
+DHCP client
+---------------------------
+**✅ When to Use DHCP Client on a Router**
+- You use DHCP client config on a router interface when:
+1. You're connecting the router to an ISP.
+2. You want the router to automatically receive IP address info (IP, subnet mask, default gateway, DNS) from a DHCP server.
+
+**🧰 Step-by-Step: Configure a Cisco Router as a DHCP Client**
+📍Example Setup:
+- DHCP server is connected to Router interface GigabitEthernet0/0
+- You want that interface to get IP info automatically
+`🔧 1. Go to the Interface`
+```
+enable
+configure terminal
+interface GigabitEthernet0/0
+```
+`⚙️ 2. Enable DHCP on the Interface`
+```
+ip address dhcp
+no shutdown
+exit
+```
+`📡 3. (Optional) Set Hostname for Debugging`
+```
+hostname RouterClient
+```
+`🔍 4. Verify DHCP Client Configuration`
+- Check if the interface got an IP address:
+```
+show ip interface brief
+```
+- Check default route received (if any):
+```
+show ip route
+```
+- Debug DHCP process:
+```
+debug dhcp detail
+```
+
+
+
+
+
+**⚙️ Scenario Overview**
+`🖧 Topology`
+
+[Router1] --- [Router2]
+   DHCP         Client
+   Server
+  
+`🎯 Goal`
+- Router1 provides DHCP service.
+- Router2 gets its IP on its interface (connected to Router1) automatically via DHCP.
+
+**✅ Step-by-Step Configuration**
+`🛠️ Router1 – DHCP Server Configuration`
+1. Assign IP to the interface facing Router2
+```
+enable
+configure terminal
+interface GigabitEthernet0/0
+ ip address 192.168.100.1 255.255.255.0
+ no shutdown
+exit
+```
+2. Exclude the server's own IP
+```
+ip dhcp excluded-address 192.168.100.1
+```
+3. Configure the DHCP pool
+```
+ip dhcp pool R2POOL
+ network 192.168.100.0 255.255.255.0
+ default-router 192.168.100.1
+ dns-server 8.8.8.8
+ lease 1
+exit
+```
+`🛠️ Router2 – DHCP Client Configuration`
+1. Configure the interface facing Router1 to use DHCP
+```
+enable
+configure terminal
+interface GigabitEthernet0/0
+ ip address dhcp
+ no shutdown
+exit
+```
+
+`🧪 Verification`
+🔍 On Router2:
+```
+show ip interface brief
+```
+You should see an IP like:
+```
+GigabitEthernet0/0    192.168.100.2   YES DHCP   up  up
+```
+🔍 On Router1:
+```
+show ip dhcp binding
+```
+You’ll see:
+```
+IP address        Client-ID/Hardware address
+192.168.100.2     0100.XXXX.XXXX.XX
+```
+
+
+
+
+
+**Modify the DHCP Client ID:**
+- The DHCP Client ID is a unique identifier for the DHCP client, often based on the MAC address of the interface.
+- To change the client ID, you can use the dhcp-client client-id command. The Client ID is typically derived from the interface’s MAC address, but you can manually specify it.
+```
+interface GigabitEthernet0/0
+ ip address dhcp
+ dhcp-client client-id "01xx.xxxx.xxxx.xx"  ! Replace with desired client ID
+ no shutdown
+exit
+```
+Note:
+- The client ID is usually in the format 01 + MAC address (e.g., 01xx.xxxx.xxxx.xx).
+- You can use any identifier as long as it conforms to the server's expectations.
+
+
+**🔧 Steps to Reserve an IP Address for a Client in DHCP**
+- To reserve an IP address for a DHCP client on a Cisco router (i.e., to bind a specific IP address to a specific client), you will need to create a DHCP reservation using the MAC address of the client. This way, the router always assigns the same IP to a specific client whenever it requests an IP via DHCP.
+
+`1. Configure the DHCP Pool`
+- This configuration is for the DHCP server (Router1) where you will configure the reservation.
+```
+enable
+configure terminal
+! Create DHCP pool
+ip dhcp pool OFFICE
+ network 192.168.100.0 255.255.255.0
+ default-router 192.168.100.1
+ dns-server 8.8.8.8
+ lease 7
+! Exclude router's own IP (if necessary)
+ip dhcp excluded-address 192.168.100.1
+exit
+```
+`2. Add the Reservation Based on MAC Address`
+- Next, you will need to add the reservation to the DHCP configuration. This binds a specific IP to a specific MAC address.
+```
+enable
+configure terminal
+! Bind IP 192.168.100.10 to a specific MAC address
+ip dhcp pool OFFICE
+ host 192.168.100.10 255.255.255.0
+ hardware-address 001b.6b25.d712   ! Replace this with the actual MAC address of the client
+exit
+```
+- hardware-address: This is the MAC address of the device that will always receive the reserved IP.
+- host 192.168.100.10 255.255.255.0: This is the reserved IP address you are assigning to the MAC address.
+
+`3. Verify the Reservation`
+Once you’ve set up the reservation, you can verify it by checking the DHCP binding table.
+```
+show ip dhcp binding
+```
+`🧪 Example Output from show ip dhcp binding`
+```
+IP address        Client-ID/Hardware address  Lease expiration
+192.168.100.10    001b.6b25.d712             never
+```
+- This confirms that the client with MAC address 001b.6b25.d712 is always assigned IP 192.168.100.10 by the router.
+
+`📝 Why Use DHCP Reservations?`
+1. Consistency: Ensures that a device (like a server or printer) always receives the same IP address.
+2. Easy Management: Simplifies network management since you don't have to configure static IPs on each client device.
+3. Avoid IP Conflicts: Helps prevent IP conflicts by ensuring DHCP clients don’t accidentally receive a reserved IP.
+
+
+
+
+======================
+DHCP relay agent
+======================
+- is used to forward DHCP messages between clients and a DHCP server when they are located on different networks or subnets.
+- By default, a DHCP client broadcasts its DHCP Discover message to the local network, but if the server is on a different subnet, the router needs to act as a relay agent to forward this message to the server.
+- On a Cisco router, the **ip helper-address** command is used to configure the router as a DHCP relay agent. This command tells the router to forward DHCP Discover messages to a specific DHCP server.
+
+**⚙️ Steps to Configure a DHCP Relay Agent on a Cisco Router**
+Let’s assume:
+- Router1 has the DHCP server on its network (192.168.100.10).
+- Router2 is on a different subnet (e.g., 192.168.200.1) and needs to relay DHCP requests to Router1.
+
+`1. Configure DHCP Server (Router1)`
+- On Router1, configure the DHCP server to assign IPs to clients. Here's a basic setup for Router1:
+```
+enable
+configure terminal
+! Assign IP to interface facing the clients
+interface GigabitEthernet0/0
+ ip address 192.168.100.1 255.255.255.0
+ no shutdown
+exit
+! Configure DHCP pool on Router1
+ip dhcp pool CLIENT_POOL
+ network 192.168.100.0 255.255.255.0
+ default-router 192.168.100.1
+ dns-server 8.8.8.8
+ lease 1
+exit
+```
+
+`2. Configure the Relay Agent (Router2)`
+- On Router2, configure the ip helper-address to forward DHCP requests to Router1 (DHCP server).
+```
+enable
+configure terminal
+
+! Assign IP to Router2 interface facing clients
+interface GigabitEthernet0/0
+ ip address 192.168.200.1 255.255.255.0
+ no shutdown
+exit
+
+! Configure DHCP relay (forwarding to Router1's DHCP server)
+interface GigabitEthernet0/0
+ ip helper-address 192.168.100.10  ! Router1's IP address (DHCP server)
+exit
+```
+
+`3. Test the DHCP Relay`
+```
+ipconfig /all   (on Windows) or `ifconfig` (on Linux/macOS)
+```
+
+
+
+
+------------------------------------------------------------------------------------------
+
+
+=====================================
+NAT (Network Address Translation)
+=====================================
+- NAT (Network Address Translation) is a method used on routers to modify IP address information in IP packet headers as they pass through a router. 
+- It allows multiple devices on a local network to share a single public IP address for accessing the internet, thus conserving the number of public IP addresses needed.
+- NAT is commonly used in home and office networks to allow multiple devices to connect to the internet using a single public IP address assigned by an Internet Service Provider (ISP).
+
+**✅ Why NAT is used**
+- IP address conservation: IPv4 addresses are limited. NAT helps many private IP devices share one public IP.
+- Security: It hides internal IP addresses from external networks.
+- Connectivity: Devices with private IPs (like 192.168.x.x, 10.x.x.x, etc.) cannot be routed over the internet without NAT.
+
+**📌 Private IP Address Ranges (RFC 1918)**
+IP Range	                    Subnet Mask	  Network Class	    Example Use Case
+10.0.0.0 – 10.255.255.255	    255.0.0.0	    Class A	          Large organizations
+172.16.0.0–172.31.255.255	    255.240.0.0	  Class B	          Medium-sized networks
+192.168.0.0–192.168.255.255	  255.255.0.0	  Class C	          Home/small office networks
+
+`🔐 Why Use Private IP Addresses?`
+- To avoid using up limited public IP addresses.
+- To separate internal network traffic from the internet.
+- For internal communication between devices (PCs, printers, servers, etc.).
+
+
+`🧠 Example`
+If you have a home network:
+- Your router might be 192.168.0.1
+- Your laptop might be 192.168.0.10
+- Your phone might be 192.168.0.20
+All these devices are on a private network, and your ISP gives you one public IP that your router uses to access the internet.
+
+`🌐 Internet Access`
+- A firewall or router with NAT and a public IP address handles internet access for everyone.
+- So, for example:
+1. 1000 users might browse the internet through a single public IP, e.g., 154.122.45.10
+2. NAT keeps track of internal IP ↔️ public IP mappings
+
+**🔄 Types of NAT**
+1. Static NAT	- One-to-one mapping between a private IP and a public IP.
+2. Dynamic NAT	- Maps private IPs to a pool of public IPs. Not guaranteed.
+3. PAT (Port Address Translation) aka Overloading - Many private IPs share one public IP using different ports. Most commonly used NAT type.
+
+
+
+**Scenario**
+`🧠 Example of NAT (PAT)`
+- Let’s say you have 3 devices:
+PC1: 192.168.1.10
+PC2: 192.168.1.11
+PC3: 192.168.1.12
+
+- All 3 go to the internet using one public IP: 203.0.113.5
+- The router keeps a NAT translation table, mapping private IP + port to the public IP + port like this:
+Private IP:Port	              Public IP:Port
+192.168.1.10:1024	            203.0.113.5:30001
+192.168.1.11:1025	            203.0.113.5:30002
+192.168.1.12:1026	            203.0.113.5:3000
+
+--------
+PAT
+-------
+- PAT is a type of NAT where many private IP addresses are mapped to one public IP address, using different port numbers to keep track of connections.
+
+`🔥 Why PAT?`
+- It allows hundreds or thousands of devices to access the internet using a single public IP address.
+- It’s the most common NAT method used in homes, schools, and offices.
+
+`🧠 How It Works`
+Private IP	            Public IP & Port
+192.168.1.10:1025	      203.0.113.5:30001
+192.168.1.11:1026	      203.0.113.5:30002
+192.168.1.12:1027	      203.0.113.5:30003
+- All 3 private IPs are translated to one public IP (203.0.113.5) but with different ports.
+
+**📡 PAT in Cisco Configuration**
+- Here’s a basic NAT configuration on a Cisco router (PAT example):
+``interface GigabitEthernet0/0
+ ip address 192.168.1.1 255.255.255.0
+ ip nat inside
+interface GigabitEthernet0/1
+ ip address 203.0.113.5 255.255.255.0
+ ip nat outside
+! Define which IPs are allowed to be translated
+access-list 1 permit 192.168.1.0 0.0.0.255
+! Configure NAT overload (PAT)
+ip nat inside source list 1 interface GigabitEthernet0/1 overload
+``
+**🛠️ Cisco Configuration for PAT with Multiple Outside Interfaces**
+1. Define Access Control Lists (ACLs) for each interface:
+``ip access-list standard ACL_1
+ permit 192.168.1.0 0.0.0.255
+ip access-list standard ACL_2
+ permit 192.168.1.0 0.0.0.255
+``
+2. Configure PAT on Each Interface:
+``interface GigabitEthernet0/0
+ ip address 192.168.1.1 255.255.255.0
+ ip nat inside
+interface GigabitEthernet0/1
+ ip address 203.0.113.1 255.255.255.0
+ ip nat outside
+interface GigabitEthernet0/2
+ ip address 203.0.113.2 255.255.255.0
+ ip nat outside
+ip nat inside source list ACL_1 interface GigabitEthernet0/1 overload
+ip nat inside source list ACL_2 interface GigabitEthernet0/2 overload
+``
+
+
+`🔍 Check NAT translation`
+``show ip nat translations
+``
+
+
+=====================================
+Static NAT
+=====================================
+- Static NAT is a one-to-one mapping between a private IP address and a public IP address.
+- It means that every time traffic comes from a specific private IP, it always uses the same public IP.
+
+**✅ Use Case Example**
+- Let’s say you have a web server inside your network:
+`Private IP: 192.168.1.10
+Public IP: 203.0.113.10`
+- You want people on the internet to access that web server using the public IP, but the server itself lives in a private network. This is where Static NAT helps.
+
+`📌 Static NAT Mapping`
+``Private IP: 192.168.1.10  <-->  Public IP: 203.0.113.10``
+- Anyone accessing 203.0.113.10 from the internet will be forwarded to 192.168.1.10 inside your network.
+`🛠️ Cisco Static NAT Configuration Example`
+``interface GigabitEthernet0/0
+ ip address 192.168.1.1 255.255.255.0
+ ip nat inside
+interface GigabitEthernet0/1
+ ip address 203.0.113.1 255.255.255.0
+ ip nat outside
+ip nat inside source static 192.168.1.10 203.0.113.10
+``
+`🔍 Verify NAT`
+``show ip nat translations
+``
+
+==========================================================
+🔁 Dynamic NAT (Network Address Translation)
+==========================================================
+- Dynamic NAT allows a private IP address to be temporarily mapped to a public IP address from a pool not a fixed one like in static NAT.
+- It's still one-to-one mapping, but:
+i. Not permanent
+ii. Only assigned when needed
+iii. Multiple private IPs can share a pool of public IPs
+
+
+`💡 Example Use Case`
+- You have:
+i. 10 users inside your network
+ii. A pool of 5 public IP addresses
+
+- When a user needs to go to the internet:
+i. The router checks the NAT pool
+ii. If a public IP is available, it maps it
+iii. When done, that IP can be reused by someone else
+
+**🖥️ Scenario**
+Device	          IP Address
+PC1	              192.168.1.2
+PC2	              192.168.1.3
+Router (Inside)	  192.168.1.1
+Router (Outside)	203.0.113.1
+NAT Pool	        203.0.113.10 - 203.0.113.14
+
+`🛠️ Cisco Dynamic NAT Configuration Example`
+``interface GigabitEthernet0/0
+ ip address 192.168.1.1 255.255.255.0
+ ip nat inside
+interface GigabitEthernet0/1
+ ip address 203.0.113.1 255.255.255.0
+ ip nat outside
+ip nat pool MYPOOL 203.0.113.10 203.0.113.14 netmask 255.255.255.0
+ip access-list standard NAT_ACL
+ permit 192.168.1.0 0.0.0.255
+ip nat inside source list NAT_ACL pool MYPOOL
+``
+`🔎 Explanation:`
+- ip nat pool MYPOOL – Defines the public IP pool.
+- access-list NAT_ACL – Defines who is allowed to use NAT (your inside LAN).
+- ip nat inside source list – Tells the router to use dynamic NAT for that access list using the defined pool.
+
+`🔍 Verify NAT`
+``show ip nat translations``
+
+`🚫 Limitation`
+- If all public IPs in the pool are used, new private users can’t access the internet until someone else releases one.
+
+
+
+=======================================
+🔁 NAT Port Forwarding
+=======================================
+- NAT Port Forwarding (also called Port Mapping) allows external devices to access services inside your network by mapping specific ports on the public IP to an internal IP and port.
+- For example, if you have a web server inside your private network, you can set up port forwarding so that when someone accesses your public IP on port 80 (HTTP), the traffic gets forwarded to your internal web server (e.g., 192.168.1.10:80).
+
+`🧠 How Port Forwarding Works`
+- When an external device sends a request to your public IP on a specific port, NAT translates this to the private IP of your server and forwards the traffic.
+
+Public IP (External)	    Internal IP (Private)	        Service
+203.0.113.5:80	          192.168.1.10:80 (HTTP)	      Web Server
+203.0.113.5:22	          192.168.1.20:22 (SSH)	        SSH Server
+203.0.113.5:3389	        192.168.1.30:3389 (RDP)	    Remote Desktop
+
+
+**🛠️ Cisco NAT Port Forwarding Configuration**
+Scenario:
+- Public IP: 203.0.113.5
+- Private IP: 192.168.1.10 (Web Server)
+- Port Forwarding: Forward HTTP (port 80) and HTTPS (port 443)
+
+`Step 1: Define Inside and Outside Interfaces`
+``interface GigabitEthernet0/0
+ ip address 192.168.1.1 255.255.255.0
+ ip nat inside
+interface GigabitEthernet0/1
+ ip address 203.0.113.5 255.255.255.0
+ ip nat outside
+``
+`Step 2: Configure Static NAT for Port Forwarding`
+``ip nat inside source static tcp 192.168.1.10 80 interface GigabitEthernet0/1 80
+ip nat inside source static tcp 192.168.1.10 443 interface GigabitEthernet0/1 443
+``
+`🔍 Explanation:`
+- ip nat inside source static tcp: Configures a static NAT mapping for TCP traffic.
+- 192.168.1.10 80: Forwards traffic arriving at port 80 (HTTP) on the public IP to 192.168.1.10:80 (internal web server).
+- interface GigabitEthernet0/1 80: Tells the router to listen on GigabitEthernet0/1 (public interface) on port 80 and forward it to the internal IP.
+
+
+
+----------------------------------------------------
+🛠️ NAT & PAT Troubleshooting on Cisco Routers
+----------------------------------------------------
+`✅ 1. Check the NAT Configuration`
+``show ip nat translations
+``
+`✅ 2. Verify NAT Statistics`
+``show ip nat statistics
+``
+`✅ 3. Check NAT Access Lists`
+``show access-lists
+``
+`✅ 4. Check Interface Configuration`
+``show ip interface brief
+``
+`✅ 5. Debug NAT (Use with caution)`
+``debug ip nat
+``
+`✅ 6. Check NAT Pool Usage`
+``show ip nat pool
+``
+`✅ 7. Check NAT Overload Configuration`
+``show run | include ip nat inside source list
+``
+`✅ 8. Check NAT Binding Table`
+``show ip nat binding
+``
+`✅ 9. Check NAT Timeout Settings`
+``show ip nat timeout
+``
+
+
+=====================================
+HSRP (Hot Standby Router Protocol)
+=====================================
+- HSRP is a Cisco proprietary protocol used to provide redundancy for default gateways on a network.
+`💡 Why Use HSRP?`
+- Imagine you have 2 routers connected to your LAN. If one router fails, you don’t want users to lose connection to the internet. HSRP helps by creating a virtual router (IP address) shared between two or more physical routers.
+
+- Virtual IP	-> The IP address shared by both routers and used as the gateway for PCs
+- Active Router	-> The router currently forwarding traffic
+- Standby Router	-> The router ready to take over if the active router fails
+- Group ID -> Multiple HSRP groups can run on the same router (for different networks)
+
+
+**🧪 Lab Scenario:**
+Devices:
+2 Routers: R1 (Primary), R2 (Backup)
+1 Switch
+1 PC
+
+IP Network:
+Subnet: 192.168.1.0/24
+PC IP: 192.168.1.10
+Virtual Gateway IP: 192.168.1.1
+R1 IP: 192.168.1.2
+R2 IP: 192.168.1.3
+
+`🌐 Topology:`
+PC ----- Switch ----- R1
+                 \
+                  \--- R2
+
+`🛠️ Step-by-Step HSRP Configuration`
+`1. Configure PC`
+- set static IP:
+``IP: 192.168.1.10
+Subnet: 255.255.255.0
+Gateway: 192.168.1.1   ← (HSRP virtual IP)
+``
+`step 2: Configure Interfaces on R1 and R2`
+``# On R1
+interface GigabitEthernet0/0
+ ip address 192.168.1.2 255.255.255.0
+ standby 1 ip 192.168.1.1
+ standby 1 priority 110
+ standby 1 preempt
+ no shutdown
+# On R2
+interface GigabitEthernet0/0
+ ip address 192.168.1.3 255.255.255.0
+ standby 1 ip 192.168.1.1
+ standby 1 priority 100
+ standby 1 preempt
+ no shutdown
+``
+`⚙️ Explanation:`
+- standby 1 ip 192.168.1.1: Set the virtual IP for group 1.
+- priority: Higher value = preferred active router.
+- preempt: Allows the router to take back active role if it comes back online.
+
+`✅ Step 3: Verification Commands`
+- On R1 and R2, use:
+``show standby
+``
+
+`🧪 Test Redundancy`
+1. Ping from PC to the gateway: ping 192.168.1.1 (should work).
+2. Shut down R1’s interface:
+``interface g0/0
+ shutdown
+``
+
+
+**✅ Why do we use a Virtual IP?**
+- Let’s say you have:
+Router 1 IP: 192.168.1.2
+Router 2 IP: 192.168.1.3
+
+- Now imagine your PC is configured with one of those as its gateway — what happens if that router goes down?
+💥 The PC loses connectivity because its gateway is gone.
+
+- That’s where the Virtual Gateway IP (e.g., 192.168.1.1) comes in.
+
+
+
+
+
+--------------------------------------
+HSRP with interface tracking
+--------------------------------------
+- HSRP with interface tracking allows a router to monitor the status of its interfaces (usually the WAN or uplink interface). 
+- If a tracked interface goes down, the router’s HSRP priority is reduced, making it possible for the standby router to take over, even if the active router itself is still technically up.
+
+
+
+**🧪 Example Scenario**
+                    INTERNET
+                       |
+                    (R1 WAN)
+                      R1 ----------------- R2
+                     /   \               /   \
+                 LAN IP:192.168.1.2  LAN IP:192.168.1.3
+                   PC1 --> Gateway: 192.168.1.1 (HSRP Virtual IP)
+
+Virtual IP: 192.168.1.1
+R1: Active with priority 110
+R2: Standby with priority 100
+R1's WAN interface is being tracked
+
+⚙️ HSRP Tracking Configuration`⚙️ HSRP Tracking Configuration`
+
+✅ R1 (Active Router with Tracking)
+``interface GigabitEthernet0/0
+ ip address 192.168.1.2 255.255.255.0
+ standby 1 ip 192.168.1.1
+ standby 1 priority 110
+ standby 1 preempt
+ standby 1 track GigabitEthernet0/1 20  ! <-- track WAN interface and reduce priority by 20 if it goes down
+``
+
+✅ R2 (Standby Router)
+``interface GigabitEthernet0/0
+ ip address 192.168.1.3 255.255.255.0
+ standby 1 ip 192.168.1.1
+ standby 1 priority 100
+ standby 1 preempt
+``
+
+`⚠️ What Happens?`
+- Normally, R1 is the active router (priority 110).
+- If R1’s WAN interface (G0/1) goes down:
+  + Priority drops to 90 (110 - 20).
+  + R2 now has a higher priority (100) → R2 becomes active.
+- When R1's interface comes back up, it reclaims the active role due to preempt.
+
+`🔍 Verify with:`
+``show standby
+show standby brief
+``
+
+
+`how it Works`
+- If a tracked item goes down, the router lowers its HSRP priority. This allows a standby router to take over if needed.
+- So, it makes failover smarter. Instead of waiting for a router to completely go offline, it can shift traffic if key paths break (like the internet link).
+
+
+
+--------------------------------------------
+VRRP (Virtual Router Redundancy Protocol)
+--------------------------------------------
+- VRRP is a redundancy protocol that allows multiple routers on the same LAN to share a virtual IP address just like HSRP. 
+- Its goal is to provide automatic gateway failover to ensure continuous availability.
+
+**📌 Key Concepts of VRRP:**
++ Virtual IP	- The shared default gateway IP used by hosts.
++ Master Router	- The router currently forwarding packets for the virtual IP.
++ Backup Router	- The router ready to take over if the master fails.
++ VRID (Virtual Router ID)	- A unique identifier for the VRRP group (1-255).
++ priority - Determines which router becomes the master (higher = preferred).
+
+`🧪 Example Scenario`
+
+``PC Default Gateway: 192.168.1.1 (Virtual IP)
+Router 1 IP: 192.168.1.2 (Priority 120)
+Router 2 IP: 192.168.1.3 (Priority 100)
+``
+- Virtual IP: 192.168.1.1 is used by all clients as the gateway.
+- Router 1 becomes Master because it has the higher priority.
+- Router 2 is Backup.
+
+`🛠️ Basic Configuration Example (Cisco IOS):`
+✅ Router 1 (Master)
+``interface GigabitEthernet0/0
+ ip address 192.168.1.2 255.255.255.0
+ vrrp 1 ip 192.168.1.1
+ vrrp 1 priority 120
+ vrrp 1 preempt
+``
+✅ Router 2 (Backup)
+``interface GigabitEthernet0/0
+ ip address 192.168.1.3 255.255.255.0
+ vrrp 1 ip 192.168.1.1
+ vrrp 1 priority 100
+ vrrp 1 preempt
+``
+**🔁 How Failover Works:**
+- If Router 1 (Master) goes down:
+  + Router 2 (Backup) notices and takes over the virtual IP.
+  + Clients keep using 192.168.1.1 — they don’t notice a change.
+- When Router 1 comes back (with preempt), it can regain master role.
+
+
+
+-----------------------------
+VRRP Tracking
+-----------------------------
+- VRRP tracking allows a router to monitor the status of its interfaces or other objects. If a tracked object goes down, the router can lower its priority, allowing another router to take over as the master.
+
+`🧪 Example Scenario`
+✅ Step-by-Step
+1. track interface
+``track 1 interface GigabitEthernet0/1 line-protocol
+``
+2. Configure VRRP and Link It to the Track
+``interface GigabitEthernet0/0
+ ip address 192.168.1.2 255.255.255.0
+ vrrp 1 ip 192.168.1.1
+ vrrp 1 priority 120
+ vrrp 1 track 1 decrement 20
+ vrrp 1 preempt
+ ``
+
+----------------------------------------
+GLBP (Gateway Load Balancing Protocol)
+----------------------------------------
+- GLBP is a Cisco proprietary protocol that provides load balancing and redundancy for IP traffic. It allows multiple routers to share a virtual IP address and distribute traffic among them.
+
+**How GLBP Works:**
+- Virtual IP Address (VIP): The GLBP group has a single virtual IP address that is shared among multiple routers, known as "group members."
+- Active/Backup Routers: GLBP uses a mechanism to elect a Virtual Gateway (VG), which is the primary active router. Other routers act as backups.
+- Load Balancing: GLBP can balance the traffic load across the available routers in the group. Unlike HSRP or VRRP, which only provide redundancy, GLBP actively distributes traffic across multiple gateways.
+
+`GLBP Configurations:`
+1. Define the GLBP Group:
+``Router(config)# interface GigabitEthernet0/0
+Router(config-if)# glbp 1 ip 192.168.1.1
+``
+2. Set the Priority:
+``Router(config-if)# glbp 1 priority 120
+``
+3. Set the Load Balancing Method:
+``Router(config-if)# glbp 1 load-balancing weighted
+``
+4. Track Interfaces (Optional):
+``Router(config-if)# glbp 1 track 1 decrement 20
+``
+`🔍Verify GLBP Configuration:`
+``show glbp
+``
+
