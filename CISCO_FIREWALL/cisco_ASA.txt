@@ -2865,3 +2865,558 @@ route outside 0.0.0.0 0.0.0.0 198.51.100.254
 show nat
 show xlate | include 192.168
 ```
+
+
+
+------------------------------------------------
+## 🔄 Dynamic PAT using Auto NAT (Object NAT)
+------------------------------------------------
+
+## 🔁 What is Dynamic PAT using Auto NAT?
+
+### 🔹 **Dynamic PAT (Port Address Translation)**:
+
+* Many **inside private hosts** share **one public IP**.
+* The ASA distinguishes connections using **port numbers**.
+* It is the most common type of NAT used for **Internet access**.
+
+### 🔹 **Auto NAT**:
+
+* NAT configuration is **done inside the object definition**.
+* Simpler and cleaner syntax than manual NAT.
+
+---
+
+## 📘 Scenario
+
+* Inside network: `192.168.1.0/24`
+* Public IP: uses ASA's **outside interface IP** for translation
+* Goal: allow internal users to access the Internet using **Dynamic PAT**
+
+---
+
+## 📟 Auto NAT Configuration (Using CLI)
+
+```bash
+! Define the internal network object
+object network INSIDE-NET
+ subnet 192.168.1.0 255.255.255.0
+ nat (inside,outside) dynamic interface
+```
+
+### 🔍 Breakdown:
+
+* `object network INSIDE-NET`: Defines the internal subnet.
+* `nat (inside,outside) dynamic interface`: Tells ASA to PAT all hosts in that subnet to the **outside interface IP**.
+
+---
+
+## 🖧 Topology Diagram
+
+```
+[PC1: 192.168.1.10] ─┐
+[PC2: 192.168.1.20] ─┤
+                     │
+                [ASA Firewall]
+               inside: 192.168.1.1
+              outside: 198.51.100.1
+                     │
+              [Internet/Cloud]
+```
+
+---
+
+## 🔧 Interface & Routing Setup
+
+```bash
+interface GigabitEthernet0/1
+ nameif inside
+ ip address 192.168.1.1 255.255.255.0
+ security-level 100
+ no shutdown
+
+interface GigabitEthernet0/0
+ nameif outside
+ ip address 198.51.100.1 255.255.255.0
+ security-level 0
+ no shutdown
+
+route outside 0.0.0.0 0.0.0.0 198.51.100.254
+```
+
+---
+
+## ✅ What Happens
+
+* All inside hosts (`192.168.1.0/24`) are **PATed** to the **outside interface IP**.
+* ASA uses **port numbers** to distinguish connections (TCP/UDP).
+* Great for saving public IPs.
+
+---
+
+## 🔍 Verification
+
+```bash
+show nat
+show xlate
+```
+
+---
+
+
+-------------------------------------------
+## 🔄 Dynamic PAT using Manual NAT
+-------------------------------------------
+## 🔄 What is Dynamic PAT using Manual NAT?
+
+### 🔹 **Dynamic PAT (Port Address Translation)**:
+
+* Multiple **private inside IPs** share a **single public IP** using **port numbers** for uniqueness.
+
+### 🔹 **Manual NAT**:
+
+* Configured **outside** of object definitions.
+* More flexible — allows **match criteria**, **ACL-based NAT**, **policy-based NAT**, and **source/destination** NAT simultaneously (Twice NAT).
+
+---
+
+## 📘 Scenario
+
+* Inside network: `192.168.10.0/24`
+* ASA outside IP: `203.0.113.1`
+* Goal: Allow internal users to access the internet using **PAT** via ASA’s outside interface IP.
+
+---
+
+## 🧱 Configuration (Manual NAT Style)
+
+```bash
+object network INSIDE-NET
+ subnet 192.168.10.0 255.255.255.0
+
+object network PAT-IP
+ host 203.0.113.1
+
+nat (inside,outside) after-auto source dynamic INSIDE-NET interface
+```
+
+### 🔍 Explanation:
+
+* `INSIDE-NET` defines internal subnet.
+* `PAT-IP` is optional (used if NAT IP differs from interface).
+* `after-auto` ensures manual NAT takes place **after Auto NAT** (or you can use `before-auto`).
+* The NAT rule uses **interface IP** for PAT (`interface` is shorthand for ASA outside IP).
+* If you want to PAT to a specific IP, replace `interface` with `PAT-IP`.
+
+---
+
+## 🖧 Topology Diagram
+
+```
+[PC1: 192.168.10.10] ─┐
+[PC2: 192.168.10.20] ─┤
+                      │
+                [ASA Firewall]
+               inside: 192.168.10.1
+              outside: 203.0.113.1
+                      │
+                [Internet/Cloud]
+```
+
+---
+
+## 🔧 Interface Setup
+
+```bash
+interface GigabitEthernet0/1
+ nameif inside
+ ip address 192.168.10.1 255.255.255.0
+ security-level 100
+ no shutdown
+
+interface GigabitEthernet0/0
+ nameif outside
+ ip address 203.0.113.1 255.255.255.0
+ security-level 0
+ no shutdown
+
+route outside 0.0.0.0 0.0.0.0 203.0.113.254
+```
+
+---
+
+## ✅ What Happens
+
+* Hosts from `192.168.10.0/24` try to access the internet.
+* ASA uses **port numbers** to map all connections to a **single IP** (`203.0.113.1`).
+* Return traffic is demultiplexed using port mappings.
+
+---
+
+## 🔍 Verification
+
+```bash
+show nat
+show xlate
+```
+
+---
+
+### ✅ Alternative: Use Specific PAT IP
+
+```bash
+nat (inside,outside) after-auto source dynamic INSIDE-NET PAT-IP
+```
+
+This translates traffic to the **203.0.113.1 IP** instead of the interface IP explicitly.
+
+
+
+--------------------------------------------------------------------
+### 🎯 Destination NAT in Cisco ASA — Explained with Lab Example
+--------------------------------------------------------------------
+
+## 🔄 What is Destination NAT?
+
+**Destination NAT** changes the **destination IP address** of a packet as it enters the ASA — typically used when **external users** access internal servers using **public IPs**.
+
+---
+
+## 🧠 Use Case Example
+
+* You have a **web server** inside your network: `192.168.1.100`
+* It should be reachable **from the Internet** using `203.0.113.100`
+* Destination NAT will **translate** packets coming to `203.0.113.100` and redirect them to `192.168.1.100`
+
+---
+
+## 🛠 Config Types That Perform Destination NAT
+
+* **Static NAT**
+* **Static PAT (Port Forwarding)**
+* **Policy NAT / Manual NAT** (for advanced control)
+
+---
+
+## ✅ Destination NAT with Static NAT (Auto NAT)
+
+```bash
+object network WEB-SERVER
+ host 192.168.1.100
+ nat (inside,outside) static 203.0.113.100
+```
+
+This means:
+
+* When someone accesses `203.0.113.100`, ASA forwards traffic to `192.168.1.100`
+
+> ✅ Used when you're mapping **1:1 internal to public IP**
+
+---
+
+## ✅ Destination NAT with Static PAT (Port Forwarding)
+
+```bash
+object network WEB-SERVER
+ host 192.168.1.100
+ nat (inside,outside) static interface service tcp 80 8080
+```
+
+This means:
+
+* Public: `ASA-outside-IP:8080` → Internal: `192.168.1.100:80`
+
+> ✅ Used for **port-based access** (e.g., multiple internal servers sharing one public IP)
+
+---
+
+## ✅ Destination NAT using Manual NAT (Twice NAT / Policy NAT)
+
+This gives more flexibility — useful when you need NAT based on **both source and destination**.
+
+```bash
+object network REAL-SERVER
+ host 192.168.1.100
+
+object network PUBLIC-IP
+ host 203.0.113.100
+
+nat (inside,outside) source static any any destination static PUBLIC-IP REAL-SERVER
+```
+
+> This NAT rule:
+
+* Translates only when traffic **to 203.0.113.100** is received
+* **Destination NAT** happens: `203.0.113.100` → `192.168.1.100`
+
+---
+
+## 🔐 Remember: ACL is Required!
+
+To allow the traffic from outside in, use an **ACL**:
+
+```bash
+access-list OUTSIDE_IN extended permit tcp any host 203.0.113.100 eq 80
+access-group OUTSIDE_IN in interface outside
+```
+
+---
+
+## 📡 Lab Example Summary
+
+| Component     | Value                 |
+| ------------- | --------------------- |
+| Server IP     | `192.168.1.100`       |
+| Public IP     | `203.0.113.100`       |
+| NAT Type      | Static NAT            |
+| Accessed From | Internet → Web Server |
+| NAT Direction | **Destination NAT**   |
+
+
+
+
+
+====================================================================
+Cisco ASA Interview Q&A (1-10)
+1. What is a Firewall?
+
+Firewall is a device that is placed between a trusted (Higher security Zone / Inside Network) and an untrusted network (Low security Zone / Outside Network ) for providing security to users, servers and internal network. It denies or permits the traffic that enters or leaves network based on pre-configured policies.
+
+Network firewalls guard an internal LAN network from malicious access from the outside/unsecured zone, such as malware-infested websites or vulnerable ports.
+
+Firewall also controls inbound and outbound communications across devices.
+
+
+
+2. What is the difference between Gateway and Firewall?
+
+A Gateway is used for making your network/segment/VLAN communicate with the outside network because Layer 3 devices (Routers) do not accept Broadcast, therefore we must have default gateway for unicast communication with router.
+
+A network firewall protects a network against unauthorized incoming or outgoing access.
+
+Network firewalls may be hardware devices or VM e.g Cisco ASA , Checkpoint.
+
+
+
+3. Firewalls work at which Layers of OSI model?
+
+Firewalls work at Network (Layer 3), Transport(Layer 4) and Application layers (Layer 7).
+
+
+
+4. What is the difference between Stateful & Stateless Firewall?
+
+Stateful Firewall - Stateful firewalls are capable of monitoring and detecting states of all traffic on a network to track and defend based on traffic patterns and flows. A Stateful firewall is aware of the connections that pass through it. It adds and maintains information about users connections in state table, referred to as a connection table.
+
+It than uses this connection table to implement the security policies for users connections. Example of stateful firewall are Juniper, ASA, Checkpoint.
+
+Stateless Firewalls - Stateless firewalls, however, only focus on individual packets, using preset rules to filter traffic. Stateless Firewalls on the other hand, does not look at the state of connections but just at the packets themselves. Example of a packet filtering firewall is the Extended Access Control Lists on Cisco IOS Router.
+
+
+
+5. What information does Stateful Firewall Maintains?
+
+
+
+A stateful firewall keeps track of the state of network connections, such as TCP streams, UDP datagrams, and ICMP messages, and can apply labels such as LISTEN, ESTABLISHED, or CLOSING.
+
+Stateful firewall maintains following information in its State table:-
+
+Source IP address, Destination IP address, IP protocol like TCP, UDP, IP protocol information such as TCP/UDP Port Numbers, TCP Sequence Numbers, and TCP Flags.
+
+
+
+6. What are the security-levels in Cisco ASA?
+
+ASA uses a security level associated with each interface.Each logical ASA interface must have ip address, security-level and nameif configured to work.
+
+ASA uses Security levels to determine the Trustworthiness of a network attached to the respectiveinterface. The security level can be configured between 0 to 100. Level 100 is the most trusted and 0 is the least trusted. By default, the ASA allows traffic from a higher security level to a lower security level only.
+
+
+
+7. What is the Default Security Level value configured for Inside Zone in Cisco ASA?
+
+Default Security Level for Inside Zone in ASA is “100”.
+
+
+
+8. What is the default TCP Session Timeout in Cisco ASA?
+
+Default TCP session timeout is 3600 seconds.
+
+
+
+9. What do you know about Transparent Firewall?
+
+Transparent mode firewall is one of the two modes ASA Firewall, while other being Layer3 (Routed mode). In transparent mode, Firewall works on layer 2 mode and does not function in Layer 3 or routed mode. This allows it to be installed into the network segment with minimal disruption because no IP addressing changes are required on the network.
+
+Mac lookup and forwarding is done through destination mac address.  Transparent firewall mode supports only two interfaces (inside and outside).
+
+Packets are forwarded from one interface on the ASA to another based on their MAC adress. This requires the ASA to mantain a MAC address table so that it knows which hosts exist on each of it’s interfaces.
+
+
+
+10. What Command to Check NAT Table in Cisco ASA?
+
+“Show xlate”
+
+Cisco ASA Interview Q&A (11-20)
+11. Is it possible to block HTTPS Traffic On Firewall?
+
+HTTPS filtering is not supported on ASA. ASA cannot do deep packet inspection or inspection based on regular expression for HTTPS traffic since content is encrypted (SSL).
+
+
+
+12. Does ASA inspect ICMP by default?
+
+ICMP inspection is not enabled by default in Cisco ASA Firewall.
+
+
+
+13. Which command is used in ASA to view connections?
+
+“Show conn”
+
+
+
+14. What are types of Contexts in ASA?
+
+There are three types of contexts in Cisco ASA.
+
+System Context, Admin Context, Normal Context
+
+
+
+15. What is the command to forcefully activate secondary firewall to become active firewall?
+
+When Primary Firewall is issued the command “no failover active”, it will make secondary Firewall to become active.
+
+“Failover active” command will trigger fail back to original active firewall.
+
+
+
+16. What is DMZ Zone and explain its purpose and usage?
+
+DMZ Zone is considered with reference to Perimeter Firewall. DMZ Zone has security level 50 on ASA Firewall and is what sits between an organisation's internal network and an external network. A DMZ network enables Internet users to access the public servers of a company. The DMZ network maintains the security for a company's private LAN.
+
+A DMZ is a subnetwork that is open to the public but behind the firewall. A DMZ allows you to redirect packets entering your WAN port to a specific IP address. You can configure the firewall rules to allow access to specific services and ports in the DMZ from both the LAN and WAN.
+
+
+
+17. What is a denial of service attack (DoS) ?
+
+A Denial-of-Service (DoS) attack is an attack meant to shut down a machine or network, making it inaccessible to its intended users. DoS attacks accomplish this by flooding the target with traffic, or sending it information that triggers a crash. In both instances, the DoS attack deprives legitimate users (i.e. employees, members, or account holders) of the service or resource they expected.
+
+A Denial of Service (DoS) attack is made from a single machine where the attack may be directed to a specific Server, a specific port or service on a target. It may also be to a network / a network component, to a firewall or to any other system. A DoS attack is made from a single machine to a victim.
+
+Victims of DoS attacks often target web servers of high-profile organizations such as banking, commerce, and media companies, or government and trade organizations. Though DoS attacks do not typically result in the theft or loss of significant information or other assets, they can cost the victim a great deal of time and money to handle.
+
+
+
+18. What is a Distributed Denial of Service (DDoS) attack?
+
+A distributed denial-of-service (DDoS) attack is a malicious attempt to disrupt the normal traffic of a targeted server, service or network by overwhelming the target or its surrounding infrastructure with a flood of Internet traffic.
+
+A Distributed Denial of Service (DDoS) attack is an attack from more than one source or from more than one location. Most of times, the DDoS attackers are not aware that they are part of DoS attack against a site, and are duped into joining the attack by a third party. In a DDoS, the attack generation is instead distributed across multiple computers.
+
+
+
+19. What do you know about Active-Active Failover?
+
+In an Active/Active failover configuration, both ASAs can pass network traffic by splitting traffic into groups. Active/Active failover is only available to ASAs in multiple context mode. In Active/Active failover, you divide the security contexts on the ASA into failover groups where 1st unit is Active for one Failover Group while the 2nd unit performs Active role for the second Failover Group. The other unit takes over during event of Active unit going down. Active-Active setups are generally done to allow more traffic to pass through the firewalls than a single unit can handle. A failover group is simply a logical group of one or more security contexts. You can create a maximum of two failover groups.
+
+The admin context is always a member of failover group 1. Any unassigned security contexts are also members of failover group 1 by default.
+
+
+
+20. Is it possible to create loopback on ASA?
+
+No, ASA Firewalls don’t support Loopback creation.
+
+Cisco ASA Interview Q&A (21-30)
+21. How do you configure a static and default route on ASA?
+
+Here is an example
+
+ASA-1(config)# route outside 20.10.100.0 255.255.255.248 10.10.1.1
+
+
+
+22. Which commands are used to convert Transparent mode to Routed mode and vice versa?
+
+Transparent mode to routed mode can be done using below command
+
+ciscoasa(config)# no firewall transparent
+
+
+
+For Routed mode to transparent mode , use this command
+
+ciscoasa(config)# firewall transparent
+
+
+
+23. What type of devices reside in DMZ Zone?
+
+PCI Servers
+
+HTTP/HTTPS Servers
+
+FTP Servers
+
+Mail & Proxy Servers
+
+
+
+24. Which command we use to verify the failover state?
+
+Show failover state
+
+
+
+25. What are the features not supported in multiple context mode?
+
+Multiple context mode does not support the following features -
+
+QoS, Remote access VPN, Unified Communications, Dynamic Routing, Threat Detection and Multicast routing are not supported.
+
+
+
+26. What is the command to enable HTTP on Cisco ASA?
+
+http server enable
+
+
+
+27. What is Active/Standby failover?
+
+With Active/Standby failover, only one unit passes traffic while the other unit waits in a standby state. Active/Standby failover is available on units running in either single or multiple context mode.
+
+The Standby unit keeps on monitoring the Active unit and state information is shared across both. If Active unit goes down, the standby unit takes over role of Active unit and starts forwarding traffic. The unit that becomes active assumes the IP addresses and MAC addresses of the failed unit before beginning to pass traffic.
+
+
+
+28. What are the values for timeout of TCP session, UDP session, ICMP session?
+
+TCP session - 60 minutes
+
+UDP session - 2 minutes
+
+ICMP session - 2 seconds
+
+
+
+29. What is EtherType ACL in Cisco ASA Firewall?
+
+An EtherType ACL is made up of one or more Access Control Entries (ACEs) that specify an EtherType. An EtherType rule controls any EtherType identified by a 16-bit hexadecimal number, as well as selected traffic types
+
+This type of ACL is applied to non-IP layer-2 traffic on bridge group member interfaces only. We may use these rules to control (permit or drop) traffic based on the EtherType value in the layer-2 packet.
+
+
+
+30. What is Webtype ACL in Cisco ASA?
+
+Webtype ACLs are used for filtering clientless SSL VPN traffic. These ACLs can deny access based on URLs or destination addresses.
+
+There are two types of webtype ACLs; URL based ACLs and TCP based ACLs. URL based ACLs are used to allow or deny URLs with the format -protocol://ip-address/path, these ACLs are for filtering based on clientless features. TCP based ACLs are used to allow or deny ip-address and port.
+===========================================================
