@@ -1,0 +1,351 @@
+----------------------------------------------------------
+Bridging workstations with GNS3 VM for ip connectivity
+----------------------------------------------------------
+- To **bridge workstations (real machines or VMs) with GNS3 devices** for **IP connectivity**, you need to **connect your physical or virtual workstation to your GNS3 topology using a cloud or NAT node**. Here's how to do it **step by step**:
+
+---
+
+## ✅ GOAL:
+
+You want a **workstation (e.g., your real PC)** to **ping or connect to routers, firewalls, or switches inside GNS3**, and vice versa.
+
+---
+
+## 🧠 Concept Overview
+
+You will:
+
+* Use a **GNS3 Cloud** or **Host binding/NAT** node.
+* Bridge it to your real PC’s **network interface**.
+* Create a **GNS3 device (like a switch)** to connect to both **GNS3 devices and your workstation**.
+
+---
+
+## ⚙️ PREREQUISITES
+
+1. **GNS3 VM installed** and running.
+2. GNS3 is set to use **Remote server (GNS3 VM)**.
+3. Your real PC is connected to a **working network (Ethernet/Wi-Fi)**.
+4. **Admin/root permissions** (especially on Linux/macOS).
+
+---
+
+## 🛠 STEPS
+
+### 🔗 1. Create or Open GNS3 Project
+
+Start a project in GNS3.
+
+---
+
+### 🌐 2. Drag the **Cloud** node to the workspace
+
+* This is how your **real PC or VM connects** to the GNS3 network.
+
+---
+
+### ⚙️ 3. Configure the Cloud
+
+* Right-click the **Cloud node** > **Configure**.
+* Under **Ethernet interfaces**, select the **real NIC** of your PC (e.g., `eth0`, `en0`, `Wi-Fi`, `Ethernet`, or `vmnet8` for VMs).
+* Apply and close.
+
+> 💡 If you use a **VM** (like Kali Linux or Windows), select the interface attached to your **host-only** or **bridged** adapter.
+
+---
+
+### 🔌 4. Add a GNS3 Switch
+
+* Add a **GNS3 Ethernet switch**.
+* Connect **your Cloud node** to this switch.
+* Connect your **GNS3 routers/firewalls** to the switch too.
+
+---
+
+### 💻 5. Assign IP addresses
+
+#### 🔹 In your GNS3 devices:
+
+E.g., Router:
+
+```bash
+int f0/0
+ip address 192.168.100.1 255.255.255.0
+no shutdown
+```
+
+#### 🔹 On your real workstation:
+
+Set IP manually (or use DHCP if you’ve set it up on router):
+
+* IP: `192.168.100.10`
+* Mask: `255.255.255.0`
+* Gateway: `192.168.100.1` (router IP)
+
+---
+
+### 📡 6. Ping test
+
+* From GNS3 device → `ping 192.168.100.10`
+* From your PC → `ping 192.168.100.1`
+
+If successful → IP connectivity is working ✅
+
+---
+
+## 🧪 Troubleshooting
+
+* **Firewall** on host PC may block ICMP (ping).
+* Use `sudo` on Linux to allow GNS3 to access real interfaces.
+* On VMware/VirtualBox VMs: Use **Bridged or Host-only** NICs.
+* In GNS3 VM settings, ensure **network is in Bridged mode** (not NAT unless you're doing PAT).
+
+---
+
+## ✅ Summary
+
+| Component    | Use                          |
+| ------------ | ---------------------------- |
+| Cloud node   | Bridges GNS3 to real network |
+| GNS3 Switch  | Connects multiple devices    |
+| Real PC / VM | Acts as external workstation |
+| IP config    | Must be in same subnet       |
+
+
+
+
+
+=========================================================================
+- Python script using **Netmiko** to configure a Cisco router (R1) to:
+
+* ✅ Change hostname to `mohadek`
+* ✅ Enable **EIGRP 100**
+* ✅ Advertise `0.0.0.0` (all networks)
+* ✅ Show `ip protocols`
+* ✅ Show `version`
+
+---
+
+## 🐍 Python Script
+
+```python
+from netmiko import ConnectHandler
+
+# Define device connection info
+router = {
+    'device_type': 'cisco_ios',
+    'host': '192.168.1.1',        # Replace with your router IP
+    'username': 'admin',          # Replace with your username
+    'password': 'cisco123',       # Replace with your password
+    'secret': 'cisco123',         # Enable password
+}
+
+# Establish SSH connection
+net_connect = ConnectHandler(**router)
+
+# Enter enable mode
+net_connect.enable()
+
+# Send configuration commands
+config_commands = [
+    'hostname mohadek',
+    'router eigrp 100',
+    'network 0.0.0.0',
+    'no auto-summary'   # Optional but recommended in modern setups
+]
+output = net_connect.send_config_set(config_commands)
+print("✅ Configuration Applied:\n", output)
+
+# Show EIGRP protocols
+output_protocols = net_connect.send_command("show ip protocols")
+print("📡 EIGRP Protocol Info:\n", output_protocols)
+
+# Show system version info
+output_version = net_connect.send_command("show version")
+print("🔧 Device Version Info:\n", output_version)
+
+# Disconnect
+net_connect.disconnect()
+```
+
+
+
+=======================================================================
+
+
+==================================================================================
+- **Python script** that configures **multiple routers** in one go using a `for` loop and **Netmiko**:
+
+---
+
+### ✅ **Requirements Met**
+
+* EIGRP 300 enabled on all routers
+* Advertise `0.0.0.0`
+* `show ip protocols` and `show version` displayed per router
+* Prompts only once for **credentials**, **no IP prompt**
+
+---
+
+## 🐍 Python Script (Multi-Router EIGRP Config)
+
+```python
+from netmiko import ConnectHandler
+from getpass import getpass
+
+# Ask for credentials ONCE
+username = input("Enter SSH username: ")
+password = getpass("Enter SSH password: ")
+secret = getpass("Enter enable password: ")
+
+# List of router IPs (edit accordingly)
+router_ips = [
+    '192.168.1.1',
+    '192.168.1.2',
+    '192.168.1.3'
+]
+
+# Configuration commands for EIGRP 300
+config_commands = [
+    'router eigrp 300',
+    'network 0.0.0.0',
+    'no auto-summary'
+]
+
+# Loop through each router IP
+for ip in router_ips:
+    print(f"\n🔄 Connecting to {ip}...")
+
+    device = {
+        'device_type': 'cisco_ios',
+        'host': ip,
+        'username': username,
+        'password': password,
+        'secret': secret,
+    }
+
+    try:
+        connection = ConnectHandler(**device)
+        connection.enable()
+
+        print(f"✅ Connected to {ip}, applying configuration...")
+        config_output = connection.send_config_set(config_commands)
+        print(config_output)
+
+        print(f"📡 EIGRP Protocols on {ip}:")
+        print(connection.send_command("show ip protocols"))
+
+        print(f"🔧 Version Info on {ip}:")
+        print(connection.send_command("show version"))
+
+        connection.disconnect()
+
+    except Exception as e:
+        print(f"❌ Failed to connect to {ip}: {e}")
+```
+
+---
+
+### 🛠️ How to Use:
+
+1. Install Netmiko if not already:
+
+   ```bash
+   pip install netmiko
+   ```
+2. Update the `router_ips` list with your routers’ IPs.
+3. Run the script once — enter credentials only once.
+4. All routers get configured with EIGRP 300.
+
+
+===================================================================================
+
+
+
+===================================================================================
+- you can also configure a **Cisco switch using Telnet** in Python via the `telnetlib` library. Below is a basic example that shows how to:
+
+---
+
+## ✅ Use Case
+
+* Connect to a Cisco switch using **Telnet**
+* Change the hostname to `mohadek-switch`
+* Create VLAN 10
+* Display `show vlan brief` and `show version`
+
+---
+
+## 🖥️ Python Script Using `telnetlib`
+
+```python
+import telnetlib
+import time
+
+# 🔐 Credentials
+host = input("Enter switch IP: ")
+username = input("Username: ")
+password = input("Password: ")
+enable_password = input("Enable Password: ")
+
+# ⏱ Delay function
+def wait(sec=1):
+    time.sleep(sec)
+
+# 🔗 Connect via Telnet
+tn = telnetlib.Telnet(host)
+tn.read_until(b"Username: ")
+tn.write(username.encode("ascii") + b"\n")
+tn.read_until(b"Password: ")
+tn.write(password.encode("ascii") + b"\n")
+
+# 🔧 Enter enable mode
+tn.write(b"enable\n")
+tn.read_until(b"Password: ")
+tn.write(enable_password.encode("ascii") + b"\n")
+
+# 🛠 Configuration mode
+tn.write(b"conf t\n")
+tn.write(b"hostname mohadek-switch\n")
+tn.write(b"vlan 10\n")
+tn.write(b"name Users\n")
+tn.write(b"exit\n")
+tn.write(b"exit\n")
+
+# 📊 Show commands
+tn.write(b"show vlan brief\n")
+wait(2)
+output_vlan = tn.read_very_eager().decode("ascii")
+
+tn.write(b"show version\n")
+wait(2)
+output_version = tn.read_very_eager().decode("ascii")
+
+# 💾 Exit
+tn.write(b"exit\n")
+
+# 🖨️ Output results
+print("\n📊 VLAN Summary:")
+print(output_vlan)
+print("\n📦 Version Info:")
+print(output_version)
+```
+
+---
+
+## 📌 Requirements
+
+* Cisco switch with **Telnet** enabled
+* Python 3.x
+* No external libraries needed (telnetlib is built-in)
+
+---
+
+## ⚠️ Telnet Warning
+
+> Telnet is **not secure**—it transmits data (including passwords) in plaintext.
+> Use **SSH (Netmiko / Paramiko)** in production environments.
+
+
+
+===================================================================================
